@@ -1,0 +1,5 @@
+export const TASK_STATUSES = ['todo', 'in_progress', 'halted', 'completed', 'cancelled']
+export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent']
+export const COMMENT_TYPES = ['comment', 'status_change', 'reassignment']
+export const EVENT_TYPES = ['meeting', 'workshop', 'celebration', 'deadline', 'sprint_review', 'webinar', 'all_hands', 'roadmap', 'other']
+export const SPRINT_STATUSES = ['active', 'completed', 'archived']
