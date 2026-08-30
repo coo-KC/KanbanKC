@@ -20,6 +20,8 @@ import PlanningHub from './pages/PlanningHub'
 import DeadlinesCalendar from './pages/DeadlinesCalendar'
 import Settings from './pages/Settings'
 import KCTree from './pages/KCTree'
+import InstallPWA from './components/InstallPWA'
+import { BACKEND_URL } from './config'
 
 type UserProfile = {
   uid: string
@@ -28,8 +30,6 @@ type UserProfile = {
   role?: string
   department?: string
 }
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 function App() {
   useFCM()
@@ -192,6 +192,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-[var(--bg)]">
+      <InstallPWA />
       {/* ── Top Header ── */}
       <header className="flex items-center justify-between px-8 h-[72px] bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-40 shadow-sm">
         <div className="text-2xl font-bold text-[var(--text1)] tracking-tight">KanbanKC</div>

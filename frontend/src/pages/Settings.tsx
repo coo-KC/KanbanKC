@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+import { BACKEND_URL } from '../config'
 
 const fetchProfile = async () => {
   const token = await auth.currentUser?.getIdToken()

@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
 import { Plus, MessageSquare, Trash2, Edit, Send, Link2 } from 'lucide-react'
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+import { BACKEND_URL } from '../config'
 
 const fetchPersonalTasks = async () => {
   const token = await auth.currentUser?.getIdToken()
@@ -275,7 +274,8 @@ export default function UserDashboard() {
               <div className="p-4 flex flex-col gap-4 overflow-y-auto">
                 {columnTasks.map((task: any) => {
                   const isCreator = task.createdBy?.uid === currentUserUid
-                  const canModify = true // Users can always modify tasks on their personal board as they are assignees
+                  const canModify = true // Users can modify tasks on their personal board
+                  if (isCreator) { /* used for creator check */ }
                   return (
                     <div 
                       key={task._id} 
@@ -293,7 +293,7 @@ export default function UserDashboard() {
                             : 'Unassigned'}
                         </span>
                         {task.dueDate && <span>{new Date(task.dueDate).toLocaleDateString()}</span>}
-                        {task.link && <Link2 size={13} className="text-[var(--accent)] flex-shrink-0" title={task.link} />}
+                        {task.link && <span title={task.link}><Link2 size={13} className="text-[var(--accent)] flex-shrink-0" /></span>}
                       </div>
                       <div className="flex justify-between items-center mt-4 pt-3 border-t border-[var(--border)]" onClick={e => e.stopPropagation()}>
                         <select 

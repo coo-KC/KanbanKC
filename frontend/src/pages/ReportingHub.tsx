@@ -3,8 +3,7 @@ import { auth } from '../firebase'
 import { FileText, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+import { BACKEND_URL } from '../config'
 
 export default function ReportingHub() {
   const [scope, setScope] = useState<'self' | 'org'>('self')
