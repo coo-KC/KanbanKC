@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { auth } from '../firebase'
-import { MessageSquare, Trash2, Edit, Send, Plus, Link2 } from 'lucide-react'
+import { MessageSquare, Trash2, Edit, Send, Plus, Link2, LayoutDashboard } from 'lucide-react'
 import { BACKEND_URL } from '../config'
 
 const fetchOrgTasks = async (filters: Record<string, string>) => {
@@ -228,6 +229,12 @@ export default function OrgDashboard() {
       <div className="flex-none p-6 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold">Organization Board</h2>
         <div className="flex flex-wrap gap-3">
+          <Link
+            to="/boards"
+            className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            <LayoutDashboard size={16} /> My Board
+          </Link>
           <select 
             value={filters.status} 
             onChange={e => setFilters({...filters, status: e.target.value})}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, PieChart, Calendar, CalendarClock, LogOut, Settings as SettingsIcon, Network } from 'lucide-react'
+import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { LayoutDashboard, Users, PieChart, Calendar, CalendarClock, LogOut, Settings as SettingsIcon, Network, Menu, X } from 'lucide-react'
 import { auth, googleProvider } from './firebase'
 import {
   createUserWithEmailAndPassword,
@@ -23,6 +23,44 @@ import KCTree from './pages/KCTree'
 import InstallPWA from './components/InstallPWA'
 import { BACKEND_URL } from './config'
 
+function BoardsHub() {
+  const navigate = useNavigate()
+
+  return (
+    <div className="space-y-6">
+      <UserDashboard />
+      <div className="flex justify-end border-t border-[var(--border)] pt-6">
+        <button
+          type="button"
+          onClick={() => navigate('/org')}
+          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          <Users size={18} /> Organization Board
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CalendarHub() {
+  const navigate = useNavigate()
+
+  return (
+    <div className="space-y-6">
+      <DeadlinesCalendar />
+      <div className="flex justify-end border-t border-[var(--border)] pt-6">
+        <button
+          type="button"
+          onClick={() => navigate('/planning')}
+          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          <CalendarClock size={18} /> Events Calendar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 type UserProfile = {
   uid: string
   email: string | null
@@ -42,6 +80,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -181,12 +220,10 @@ function App() {
   }
 
   const navItems = [
-    { path: '/', label: 'My Board', icon: <LayoutDashboard size={18} /> },
-    { path: '/org', label: 'Organization Board', icon: <Users size={18} /> },
+    { path: '/boards', label: 'Boards', icon: <LayoutDashboard size={18} /> },
     { path: '/tree', label: 'KC Tree', icon: <Network size={18} /> },
     { path: '/reports', label: 'Reporting & Analytics', icon: <PieChart size={18} /> },
-    { path: '/planning', label: 'Planning Hub', icon: <CalendarClock size={18} /> },
-    { path: '/calendar', label: 'Deadlines Calendar', icon: <Calendar size={18} /> },
+    { path: '/calendar', label: 'Calendar', icon: <Calendar size={18} /> },
     { path: '/settings', label: 'Settings', icon: <SettingsIcon size={18} /> },
   ]
 
@@ -194,15 +231,26 @@ function App() {
     <div className="flex flex-col min-h-screen w-full bg-[var(--bg)]">
       <InstallPWA />
       {/* ── Top Header ── */}
-      <header className="flex items-center justify-between px-8 h-[72px] bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-40 shadow-sm">
-        <div className="text-2xl font-bold text-[var(--text1)] tracking-tight">KanbanKC</div>
-        <nav className="flex gap-1 items-center">
+      <header className="flex items-center justify-between px-4 sm:px-8 h-[72px] bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen(true)}
+            className="rounded-lg p-2 text-[var(--text1)] hover:bg-[var(--border)]/50 md:hidden"
+          >
+            <Menu size={22} />
+          </button>
+          <div className="text-2xl font-bold tracking-tight text-[var(--text1)]">KanbanKC</div>
+        </div>
+        <nav className="hidden gap-1 items-center md:flex">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                ${location.pathname === item.path
+                ${location.pathname === item.path || (item.path === '/boards' && ['/org', '/'].includes(location.pathname)) || (item.path === '/calendar' && location.pathname === '/planning')
                   ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
                   : 'text-[var(--text2)] hover:bg-[var(--border)]/50 hover:text-[var(--text1)]'
                 }`}
@@ -212,8 +260,8 @@ function App() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col items-end">
+        <div className="flex items-center gap-2 sm:gap-6">
+          <div className="hidden flex-col items-end sm:flex">
             <span className="font-semibold text-[var(--text1)]">{profile.name || profile.email}</span>
             <span className="text-xs text-[var(--text2)] capitalize">{profile.role}</span>
           </div>
@@ -229,15 +277,45 @@ function App() {
         </div>
       </header>
 
+      {mobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+        />
+      )}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[var(--surface)] p-5 shadow-2xl transition-transform duration-200 md:hidden ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="mb-8 flex items-center justify-between">
+          <span className="text-xl font-bold text-[var(--text1)]">Navigation</span>
+          <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="rounded-lg p-2 text-[var(--text2)] hover:bg-[var(--border)]/50">
+            <X size={22} />
+          </button>
+        </div>
+        <nav className="flex flex-col gap-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setMobileNavOpen(false)}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium ${location.pathname === item.path || (item.path === '/boards' && ['/org', '/'].includes(location.pathname)) || (item.path === '/calendar' && location.pathname === '/planning') ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'text-[var(--text2)] hover:bg-[var(--border)]/50'}`}
+            >
+              {item.icon}<span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
       {/* ── Main Content ── */}
-      <main className="flex-1 p-8">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
         <Routes>
-          <Route path="/" element={<UserDashboard />} />
+          <Route path="/" element={<Navigate to="/boards" replace />} />
+          <Route path="/boards" element={<BoardsHub />} />
           <Route path="/org" element={<OrgDashboard />} />
           <Route path="/tree" element={<KCTree />} />
           <Route path="/reports" element={<ReportingHub />} />
           <Route path="/planning" element={<PlanningHub />} />
-          <Route path="/calendar" element={<DeadlinesCalendar />} />
+          <Route path="/calendar" element={<CalendarHub />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>

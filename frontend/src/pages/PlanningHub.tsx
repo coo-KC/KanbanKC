@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { auth } from '../firebase'
-import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, X, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, X, Trash2, CalendarDays } from 'lucide-react'
 import { BACKEND_URL } from '../config'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -166,9 +167,15 @@ export default function PlanningHub() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:justify-between sm:items-center">
         <h2 className="text-2xl font-bold text-[var(--text1)]">Events Hub</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/calendar"
+            className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            <CalendarDays size={16} /> Deadlines Calendar
+          </Link>
           <div className="flex items-center gap-3">
             <button className="w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text2)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all duration-200 cursor-pointer" onClick={goToPrev}>
               <ChevronLeft size={18} />
