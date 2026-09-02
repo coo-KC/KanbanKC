@@ -13,7 +13,7 @@ import { verifyFirebaseToken } from "./middleware/auth.js";
 
 const app = express();
 
-// Trust proxy for reverse proxies / Cloudflare / Vercel
+// Trust proxy for reverse proxies and Vercel
 app.set("trust proxy", 1);
 
 // Configure CORS
@@ -63,26 +63,10 @@ app.use((req, res, next) => {
 });
 
 // Apply helmet
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-// Parse JSON without Express's body-parser dependency, which is not Worker-compatible.
-app.use((req, res, next) => {
-  if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return next();
-
-  const chunks = [];
-  req.on('data', (chunk) => chunks.push(chunk));
-  req.on('end', () => {
-    if (chunks.length === 0) return next();
-
-    try {
-      req.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      return next();
-    } catch {
-      return res.status(400).json({ error: 'Invalid JSON body' });
-    }
-  });
-  req.on('error', next);
-});
+// Parse JSON request bodies.
+app.use(express.json());
 
 // CORS Error Handler
 const errorHandler = (err, req, res, next) => {
@@ -96,7 +80,7 @@ const errorHandler = (err, req, res, next) => {
 };
 app.use(errorHandler);
 
-// Rate Limiters
+// Rate limiters
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,

@@ -16,5 +16,5 @@ const sprintSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-const Sprint = mongoose.models.Sprint || mongoose.model('Sprint', sprintSchema)
+const Sprint = mongoose.models?.Sprint || mongoose.model('Sprint', sprintSchema)
 export default Sprint

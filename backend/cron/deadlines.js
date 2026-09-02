@@ -1,4 +1,3 @@
-import cron from 'node-cron';
 import Task from '../models/Task.js';
 import { sendNotificationToUsers } from '../utils/messaging.js';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
@@ -42,7 +41,10 @@ export const runDeadlineCheck = async () => {
 
 // Run every day at 8:00 AM (for standalone Node server)
 export const startDeadlineCron = () => {
-  cron.schedule('0 8 * * *', async () => {
-    await runDeadlineCheck();
-  });
+  if (typeof globalThis.WebSocketPair !== "undefined") return;
+  import('node-cron').then((cron) => {
+    (cron.default || cron).schedule('0 8 * * *', async () => {
+      await runDeadlineCheck();
+    });
+  }).catch(() => {});
 };
