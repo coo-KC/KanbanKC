@@ -65,8 +65,24 @@ app.use((req, res, next) => {
 // Apply helmet
 app.use(helmet());
 
-// Parse JSON body
-app.use(express.json());
+// Parse JSON without Express's body-parser dependency, which is not Worker-compatible.
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return next();
+
+  const chunks = [];
+  req.on('data', (chunk) => chunks.push(chunk));
+  req.on('end', () => {
+    if (chunks.length === 0) return next();
+
+    try {
+      req.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      return next();
+    } catch {
+      return res.status(400).json({ error: 'Invalid JSON body' });
+    }
+  });
+  req.on('error', next);
+});
 
 // CORS Error Handler
 const errorHandler = (err, req, res, next) => {

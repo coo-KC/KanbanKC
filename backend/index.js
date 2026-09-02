@@ -56,7 +56,40 @@ export default {
   async fetch(request, env, ctx) {
     try {
       await setupEnvironment(env);
-      return await serverlessHandler(request, env, ctx);
+
+      const url = new URL(request.url);
+      const body = ['GET', 'HEAD'].includes(request.method)
+        ? undefined
+        : await request.text();
+      const event = {
+        version: '2.0',
+        routeKey: '$default',
+        rawPath: url.pathname,
+        rawQueryString: url.search.slice(1),
+        headers: Object.fromEntries(request.headers),
+        requestContext: {
+          http: {
+            method: request.method,
+            path: url.pathname,
+            sourceIp: request.headers.get('cf-connecting-ip') || '0.0.0.0',
+          },
+          requestId: request.headers.get('cf-ray') || crypto.randomUUID(),
+        },
+        body,
+        isBase64Encoded: false,
+      };
+
+      const result = await serverlessHandler(event, ctx);
+      const responseHeaders = new Headers(result.headers || {});
+      for (const cookie of result.cookies || []) responseHeaders.append('Set-Cookie', cookie);
+      const responseBody = result.isBase64Encoded
+        ? Uint8Array.from(atob(result.body), (character) => character.charCodeAt(0))
+        : result.body || '';
+
+      return new Response(responseBody, {
+        status: result.statusCode || 200,
+        headers: responseHeaders,
+      });
     } catch (error) {
       console.error("Cloudflare Worker Request Error:", error);
       return new Response(
