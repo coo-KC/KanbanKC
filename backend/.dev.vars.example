@@ -1,0 +1,6 @@
+# Local Cloudflare Worker environment variables for `npx wrangler dev`
+# Copy this file to .dev.vars (which is git-ignored) and populate with your credentials
+
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kanbankc?retryWrites=true&w=majority
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"your-project-id",...}
+FRONTEND_ORIGIN=http://localhost:5173,https://your-app.vercel.app
