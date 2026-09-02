@@ -1,1 +1,1 @@
-export const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+export const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'https://kanbankc.mayesha-kishorcoder.workers.dev').replace(/\/$/, '');
