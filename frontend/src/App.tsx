@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, PieChart, Calendar, CalendarClock, LogOut, Settings as SettingsIcon, Network, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, PieChart, Calendar, CalendarClock, LogOut, Settings as SettingsIcon, Network, Menu, X, Shield, AlertTriangle } from 'lucide-react'
 import { auth, googleProvider } from './firebase'
 import {
   createUserWithEmailAndPassword,
@@ -20,6 +20,7 @@ import PlanningHub from './pages/PlanningHub'
 import DeadlinesCalendar from './pages/DeadlinesCalendar'
 import Settings from './pages/Settings'
 import KCTree from './pages/KCTree'
+import AdminDashboard from './pages/AdminDashboard'
 import InstallPWA from './components/InstallPWA'
 import { BACKEND_URL } from './config'
 
@@ -67,6 +68,7 @@ type UserProfile = {
   name?: string | null
   role?: string
   department?: string
+  isWarned?: boolean
 }
 
 function App() {
@@ -225,6 +227,7 @@ function App() {
     { path: '/reports', label: 'Reporting & Analytics', icon: <PieChart size={18} /> },
     { path: '/calendar', label: 'Calendar', icon: <Calendar size={18} /> },
     { path: '/settings', label: 'Settings', icon: <SettingsIcon size={18} /> },
+    ...(profile.role === 'admin' ? [{ path: '/admin', label: 'Admin Dashboard', icon: <Shield size={18} /> }] : []),
   ]
 
   return (
@@ -277,6 +280,14 @@ function App() {
         </div>
       </header>
 
+      {/* ── Red Warning Banner (Right Below Header) ── */}
+      {profile.isWarned && (
+        <div className="w-full bg-red-600 text-white font-bold text-sm sm:text-base py-2.5 px-4 text-center flex items-center justify-center gap-2 shadow-md z-30 animate-pulse">
+          <AlertTriangle size={20} className="flex-shrink-0" />
+          <span>Warning: You're Under Watch</span>
+        </div>
+      )}
+
       {mobileNavOpen && (
         <button
           type="button"
@@ -317,6 +328,7 @@ function App() {
           <Route path="/planning" element={<PlanningHub />} />
           <Route path="/calendar" element={<CalendarHub />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </main>
 
