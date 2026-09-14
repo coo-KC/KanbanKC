@@ -2,6 +2,7 @@ import express from 'express'
 import Event from '../models/Event.js'
 import User from '../models/User.js'
 import { requireAdmin, requireCgrade, requireEmployee } from '../middleware/rbac.js'
+import { sendNotificationToUsers } from '../utils/messaging.js'
 
 const router = express.Router()
 
@@ -38,6 +39,18 @@ router.post('/', requireEmployee, async (req, res) => {
       status,
       createdBy: user._id,
     })
+
+    if (status === 'published') {
+      const allUsers = await User.find({ _id: { $ne: user._id } }).select('_id').lean()
+      const recipientIds = allUsers.map(u => u._id)
+      sendNotificationToUsers(
+        recipientIds,
+        'New Event Created',
+        `New event: "${title}"`,
+        { eventId: event._id.toString() }
+      )
+    }
+
     res.status(201).json(event)
   } catch (error) {
     console.error('Failed to create event:', error)
@@ -54,6 +67,16 @@ router.patch('/:id/approve', requireAdmin, async (req, res) => {
       { new: true }
     )
     if (!event) return res.status(404).json({ error: 'Event not found' })
+
+    const allUsers = await User.find().select('_id').lean()
+    const recipientIds = allUsers.map(u => u._id)
+    sendNotificationToUsers(
+      recipientIds,
+      'New Event Approved',
+      `Event approved: "${event.title}"`,
+      { eventId: event._id.toString() }
+    )
+
     res.json(event)
   } catch (error) {
     console.error('Failed to approve event:', error)

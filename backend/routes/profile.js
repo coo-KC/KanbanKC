@@ -1,5 +1,7 @@
 import express from 'express'
+import { getAuth } from 'firebase-admin/auth'
 import User from '../models/User.js'
+import { clearUserCache } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -31,6 +33,7 @@ router.get('/', async (req, res) => {
       department: user.department || '',
       username: user.username || '',
       superior: user.superior || null,
+      isWarned: !!user.isWarned,
     })
   } catch (error) {
     console.error('Profile route error:', error)
@@ -111,10 +114,37 @@ router.patch('/', async (req, res) => {
       department: user.department || '',
       username: user.username || '',
       superior: user.superior || null,
+      isWarned: !!user.isWarned,
     })
   } catch (error) {
     console.error('Profile update error:', error)
     res.status(500).json({ error: 'Unable to update profile' })
+  }
+})
+
+router.delete('/', async (req, res) => {
+  const firebaseUser = req.user
+  if (!firebaseUser) return res.status(401).json({ error: 'Unauthorized' })
+
+  try {
+    const user = await User.findOne({ uid: firebaseUser.uid })
+    if (!user) return res.status(404).json({ error: 'User not found' })
+
+    // Delete user from Firebase Auth
+    try {
+      await getAuth().deleteUser(user.uid)
+    } catch (fbErr) {
+      console.warn('Firebase user deletion warning (may already be deleted):', fbErr.message)
+    }
+
+    // Delete user from MongoDB
+    await User.deleteOne({ _id: user._id })
+    clearUserCache(user.uid)
+
+    res.json({ message: 'Account deleted successfully' })
+  } catch (error) {
+    console.error('Self account deletion failed:', error)
+    res.status(500).json({ error: 'Unable to delete account' })
   }
 })
 

@@ -14,10 +14,22 @@ export const useFCM = () => {
       if (registered.current) return;
       
       try {
+        if (!('serviceWorker' in navigator)) {
+          console.log('Service workers are not supported in this browser.');
+          return;
+        }
+
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
           console.log('Notification permission granted.');
-          const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+
+          const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          await navigator.serviceWorker.ready;
+
+          const currentToken = await getToken(messaging, {
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: swRegistration,
+          });
           
           if (currentToken) {
             console.log('FCM Token retrieved:', currentToken);
@@ -42,7 +54,7 @@ export const useFCM = () => {
           console.log('Unable to get permission to notify.');
         }
       } catch (err) {
-        console.error('An error occurred while retrieving token. ', err);
+        console.error('An error occurred while retrieving FCM token. ', err);
       }
     };
 
@@ -53,8 +65,19 @@ export const useFCM = () => {
     });
 
     const unsubMessage = onMessage(messaging, (payload) => {
-      console.log('Message received. ', payload);
-      // Can show toast notification here if desired
+      console.log('Foreground message received: ', payload);
+      if (Notification.permission === 'granted') {
+        const title = payload.notification?.title || payload.data?.title || 'KanbanKC Notification';
+        const body = payload.notification?.body || payload.data?.body || '';
+        try {
+          new Notification(title, { body, icon: '/icon-192.png' });
+        } catch {
+          // Fallback if Notification constructor fails on mobile
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(title, { body, icon: '/icon-192.png' });
+          });
+        }
+      }
     });
 
     return () => {

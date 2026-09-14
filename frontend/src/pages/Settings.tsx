@@ -145,7 +145,86 @@ export default function Settings() {
             <input type="text" readOnly value={profile?.role || 'employee'} className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3 opacity-60 cursor-not-allowed capitalize" />
           </div>
         </div>
+
+        {/* Danger Zone */}
+        <DangerZone />
       </div>
+    </div>
+  )
+}
+
+function DangerZone() {
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleDeleteSelf = async () => {
+    setIsDeleting(true)
+    setError('')
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/api/profile`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include'
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to delete account')
+      }
+      await auth.signOut()
+      window.location.href = '/'
+    } catch (err: any) {
+      setError(err.message)
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <div className="mt-10 border-t border-red-500/30 pt-6">
+      <h3 className="text-red-500 font-bold text-base flex items-center gap-2">
+        Danger Zone
+      </h3>
+      <p className="text-[var(--text2)] text-sm mt-1 mb-4">
+        Once you delete your account, your access will be permanently revoked. This action cannot be undone.
+      </p>
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="w-full py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-semibold hover:bg-red-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+      >
+        Delete My Account
+      </button>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-2xl w-full max-w-md space-y-4">
+            <h3 className="text-xl font-bold text-red-500">Confirm Account Deletion</h3>
+            <p className="text-sm text-[var(--text2)] leading-relaxed">
+              Are you sure you want to delete your account? You will lose access to KanbanKC immediately.
+            </p>
+            {error && <div className="p-3 rounded-xl bg-red-500/15 text-red-500 text-xs font-semibold">{error}</div>}
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-[var(--text1)] hover:bg-[var(--bg)] rounded-xl border border-[var(--border)] text-sm font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSelf}
+                disabled={isDeleting}
+                className="px-5 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

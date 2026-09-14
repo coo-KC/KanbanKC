@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
     department: { type: String, required: false },
     username: { type: String, unique: true, sparse: true },
     superior: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    isWarned: { type: Boolean, default: false },
     fcmTokens: [{ type: String, trim: true }],
   },
   { timestamps: true },
