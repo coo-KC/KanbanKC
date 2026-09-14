@@ -127,7 +127,6 @@ export default function OrgDashboard() {
   const { data: tasks = [], isLoading, error } = useQuery({
     queryKey: ['orgTasks', filters],
     queryFn: () => fetchOrgTasks(filters),
-    refetchInterval: 15000 
   })
 
   const { data: users = [] } = useQuery({
@@ -147,7 +146,6 @@ export default function OrgDashboard() {
     queryKey: ['comments', selectedTask?._id],
     queryFn: () => fetchComments(selectedTask._id),
     enabled: !!selectedTask,
-    refetchInterval: 5000
   })
 
   const statusMutation = useMutation({

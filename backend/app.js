@@ -47,6 +47,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
     preflightContinue: false,
+    maxAge: 86400,
   })
 );
 
@@ -57,6 +58,7 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Max-Age", "86400");
     return res.sendStatus(200);
   }
   next();

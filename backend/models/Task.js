@@ -26,5 +26,10 @@ taskSchema.pre('save', function () {
   this.updatedAt = new Date()
 })
 
+taskSchema.index({ assignees: 1, isDeleted: 1 })
+taskSchema.index({ status: 1, isDeleted: 1 })
+taskSchema.index({ createdBy: 1, isDeleted: 1 })
+taskSchema.index({ isDeleted: 1, createdAt: -1 })
+
 const Task = mongoose.models?.Task || mongoose.model('Task', taskSchema)
 export default Task
