@@ -14,5 +14,7 @@ const activityLogSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
+activityLogSchema.index({ task: 1, timestamp: 1 })
+
 const ActivityLog = mongoose.models?.ActivityLog || mongoose.model('ActivityLog', activityLogSchema)
 export default ActivityLog

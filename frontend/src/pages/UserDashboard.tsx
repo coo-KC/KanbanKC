@@ -166,7 +166,6 @@ export default function UserDashboard() {
     queryKey: ['comments', selectedTask?._id],
     queryFn: () => fetchComments(selectedTask._id),
     enabled: !!selectedTask,
-    refetchInterval: 5000
   })
 
   const statusMutation = useMutation({
