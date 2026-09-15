@@ -250,7 +250,7 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full w-full max-w-full overflow-hidden">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--text1)]">My Board</h2>
         <button 
@@ -261,11 +261,11 @@ export default function UserDashboard() {
         </button>
       </div>
 
-      <div className="flex flex-row gap-6 overflow-x-auto pb-4 h-full items-start">
+      <div className="flex flex-row gap-4 sm:gap-6 overflow-x-auto pb-4 h-full items-start w-full max-w-full">
         {STATUSES.map(status => {
           const columnTasks = tasks.filter((t: any) => t.status === status)
           return (
-            <div key={status} className="flex-none w-[300px] flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl max-h-full">
+            <div key={status} className="flex-none w-[270px] sm:w-[300px] flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl max-h-full">
               <h3 className="p-4 font-semibold uppercase text-sm text-[var(--text2)] border-b border-[var(--border)] flex justify-between items-center">
                 {status.replace('_', ' ')} 
                 <span className="bg-[var(--bg)] px-2 py-0.5 rounded-full text-xs">{columnTasks.length}</span>

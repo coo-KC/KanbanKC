@@ -62,6 +62,9 @@ export default function Settings() {
       setSuccessMsg('Profile updated successfully!')
       setErrorMsg('')
       queryClient.setQueryData(['profile'], data)
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
       setTimeout(() => setSuccessMsg(''), 3000)
     },
     onError: (err: any) => {
@@ -82,8 +85,15 @@ export default function Settings() {
 
   if (isLoading) return <div className="p-8 text-[var(--text1)]">Loading settings...</div>
 
+  // Extract current superior ID cleanly whether it's an object or a string ID
+  const currentSuperiorId =
+    typeof profile?.superior === 'object' && profile?.superior
+      ? profile?.superior._id
+      : typeof profile?.superior === 'string'
+      ? profile?.superior
+      : ''
+
   // Filter out the current user from the superior options to prevent selecting oneself
-  // In a real app we'd also prevent selecting someone who reports to this user (circular dependencies).
   const availableSuperiors = users.filter((u: any) => u.uid !== profile?.uid)
 
   return (
@@ -109,7 +119,7 @@ export default function Settings() {
           
           <label className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
             Immediate Superior
-            <select name="superior" defaultValue={profile?.superior || ''} className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3">
+            <select name="superior" key={currentSuperiorId} defaultValue={currentSuperiorId} className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3">
               <option value="">None (Top Level)</option>
               {availableSuperiors.map((u: any) => (
                 <option key={u._id} value={u._id}>

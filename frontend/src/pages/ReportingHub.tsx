@@ -91,37 +91,39 @@ export default function ReportingHub() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[var(--text1)]">Reporting & Analytics</h2>
+    <div className="flex flex-col h-full space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-[var(--text1)]">Reporting & Analytics</h2>
       </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-2xl mb-6">
-        <h3 className="text-[var(--text1)] font-bold mt-0 mb-4">Report Configuration</h3>
-        <div className="flex gap-4 items-end">
-          <label className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
+      <div className="bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-6 rounded-2xl">
+        <h3 className="text-[var(--text1)] font-bold mt-0 mb-3 text-sm sm:text-base">Report Configuration</h3>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end w-full">
+          <label className="flex-1 flex flex-col gap-1.5 font-semibold text-[var(--text1)] text-xs sm:text-sm">
             Scope
-            <select value={scope} onChange={e => setScope(e.target.value as any)} className="px-3 py-2 bg-[var(--bg)] text-[var(--text1)] border border-[var(--border)] rounded-lg">
+            <select value={scope} onChange={e => setScope(e.target.value as any)} className="w-full px-3 py-2 bg-[var(--bg)] text-[var(--text1)] border border-[var(--border)] rounded-xl text-xs sm:text-sm outline-none focus:border-[var(--accent)]">
               <option value="self">My Tasks</option>
               <option value="org">Organization Tasks (Admin/C-Grade)</option>
             </select>
           </label>
-          <button className="px-4 py-2 bg-[var(--accent)] text-white rounded-xl font-semibold hover:opacity-90 transition-all" onClick={handlePreview} disabled={loading}>
+          <button className="w-full sm:w-auto px-4 py-2 bg-[var(--accent)] text-white rounded-xl font-semibold text-xs sm:text-sm hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0" onClick={handlePreview} disabled={loading}>
             {loading ? 'Loading...' : 'Preview Data'}
           </button>
         </div>
-        {error && <p className="text-red-500 font-semibold mt-4">{error}</p>}
+        {error && <p className="text-red-500 font-semibold text-xs sm:text-sm mt-3">{error}</p>}
       </div>
 
-      <div className="flex-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 overflow-hidden">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="m-0 text-[var(--text1)] font-bold">Data Preview <span className="text-sm font-normal text-[var(--text2)] ml-2">{previewData.length} records</span></h3>
-          <div className="flex gap-3">
-            <button className="bg-emerald-500 text-white rounded-xl px-4 py-2 font-semibold flex items-center gap-2 hover:opacity-90 transition-all" onClick={exportCSV}>
-              <Download size={16} /> Export CSV
+      <div className="flex-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 sm:p-6 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+          <h3 className="m-0 text-[var(--text1)] font-bold text-sm sm:text-base flex items-center gap-2">
+            Data Preview <span className="text-xs font-normal text-[var(--text2)]">({previewData.length} records)</span>
+          </h3>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-none bg-emerald-600 text-white rounded-xl px-3 py-1.5 text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer" onClick={exportCSV}>
+              <Download size={14} /> Export CSV
             </button>
-            <button className="bg-rose-500 text-white rounded-xl px-4 py-2 font-semibold flex items-center gap-2 hover:opacity-90 transition-all" onClick={exportPDF}>
-              <FileText size={16} /> Export PDF
+            <button className="flex-1 sm:flex-none bg-rose-600 text-white rounded-xl px-3 py-1.5 text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer" onClick={exportPDF}>
+              <FileText size={14} /> Export PDF
             </button>
           </div>
         </div>

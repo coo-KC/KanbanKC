@@ -58,44 +58,44 @@ export default function InstallPWA() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2.5 shadow-lg border-b border-indigo-500/30 flex items-center justify-between gap-3 text-xs md:text-sm">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div className="p-1.5 bg-white/10 rounded-lg flex-shrink-0">
-          <Smartphone size={18} className="text-white" />
+    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 sm:px-4 py-1.5 sm:py-2.5 shadow-sm border-b border-indigo-500/30 flex items-center justify-between gap-2 text-[11px] sm:text-xs md:text-sm max-w-full">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="p-1 bg-white/10 rounded-lg flex-shrink-0">
+          <Smartphone size={15} className="text-white" />
         </div>
         <div className="truncate">
-          <span className="font-semibold">Install KanbanKC App:</span>{' '}
+          <span className="font-semibold">Install KanbanKC:</span>{' '}
           <span className="hidden sm:inline text-indigo-100">
-            Keep it on your phone or desktop home screen for instant access!
+            Keep it on your home screen for instant access!
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {installedSuccess ? (
-          <span className="flex items-center gap-1 bg-emerald-500/30 text-emerald-200 px-3 py-1 rounded-lg text-xs font-medium">
-            <Check size={14} /> Installed!
+          <span className="flex items-center gap-1 bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-lg text-[10px] sm:text-xs font-medium">
+            <Check size={12} /> Installed!
           </span>
         ) : deferredPrompt ? (
           <button
             onClick={handleInstallClick}
-            className="flex items-center gap-1.5 bg-white text-indigo-600 font-medium px-3 py-1.5 rounded-lg shadow-sm hover:bg-indigo-50 transition-all duration-200 text-xs"
+            className="flex items-center gap-1 bg-white text-indigo-600 font-semibold px-2.5 py-1 rounded-md shadow-sm hover:bg-indigo-50 transition-all duration-200 text-[11px] sm:text-xs"
           >
-            <Download size={14} />
-            <span>Install App</span>
+            <Download size={13} />
+            <span>Install</span>
           </button>
         ) : isIOS ? (
-          <span className="text-xs bg-white/15 px-2.5 py-1 rounded-md text-indigo-100">
-            Tap <strong className="text-white">Share</strong> &rarr; <strong className="text-white">Add to Home Screen</strong>
+          <span className="text-[10px] sm:text-xs bg-white/15 px-2 py-0.5 rounded-md text-indigo-100">
+            Tap <strong className="text-white">Share</strong> &rarr; <strong className="text-white">Add to Home</strong>
           </span>
         ) : (
           <button
             onClick={handleInstallClick}
-            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-medium px-3 py-1.5 rounded-lg transition-all text-xs"
-            title="Use Chrome or Edge address bar to Install"
+            className="flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white font-medium px-2.5 py-1 rounded-md transition-all text-[11px] sm:text-xs"
+            title="Use browser menu to install"
           >
-            <Download size={14} />
-            <span>Install App</span>
+            <Download size={13} />
+            <span>Install</span>
           </button>
         )}
 
@@ -104,7 +104,7 @@ export default function InstallPWA() {
           className="p-1 hover:bg-white/10 rounded-md transition-colors text-indigo-200 hover:text-white"
           aria-label="Dismiss PWA prompt"
         >
-          <X size={16} />
+          <X size={14} />
         </button>
       </div>
     </div>

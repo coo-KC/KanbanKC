@@ -19,7 +19,7 @@ import ReportingHub from './pages/ReportingHub'
 import PlanningHub from './pages/PlanningHub'
 import DeadlinesCalendar from './pages/DeadlinesCalendar'
 import Settings from './pages/Settings'
-import KCTree from './pages/KCTree'
+import COCTree from './pages/COCTree'
 import AdminDashboard from './pages/AdminDashboard'
 import InstallPWA from './components/InstallPWA'
 import { BACKEND_URL } from './config'
@@ -223,7 +223,7 @@ function App() {
 
   const navItems = [
     { path: '/boards', label: 'Boards', icon: <LayoutDashboard size={18} /> },
-    { path: '/tree', label: 'KC Tree', icon: <Network size={18} /> },
+    { path: '/tree', label: 'COC Tree', icon: <Network size={18} /> },
     { path: '/reports', label: 'Reporting & Analytics', icon: <PieChart size={18} /> },
     { path: '/calendar', label: 'Calendar', icon: <Calendar size={18} /> },
     { path: '/settings', label: 'Settings', icon: <SettingsIcon size={18} /> },
@@ -231,62 +231,65 @@ function App() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[var(--bg)]">
-      <InstallPWA />
-      {/* ── Top Header ── */}
-      <header className="flex items-center justify-between px-4 sm:px-8 h-[72px] bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Open navigation"
-            aria-expanded={mobileNavOpen}
-            onClick={() => setMobileNavOpen(true)}
-            className="rounded-lg p-2 text-[var(--text1)] hover:bg-[var(--border)]/50 md:hidden"
-          >
-            <Menu size={22} />
-          </button>
-          <div className="text-2xl font-bold tracking-tight text-[var(--text1)]">KanbanKC</div>
-        </div>
-        <nav className="hidden gap-1 items-center md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                ${location.pathname === item.path || (item.path === '/boards' && ['/org', '/'].includes(location.pathname)) || (item.path === '/calendar' && location.pathname === '/planning')
-                  ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
-                  : 'text-[var(--text2)] hover:bg-[var(--border)]/50 hover:text-[var(--text1)]'
-                }`}
+    <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--bg)]">
+      {/* ── Sticky Top Navigation & Banner Bar (Pinned to top of screen) ── */}
+      <div className="sticky top-0 z-50 w-full max-w-full flex flex-col shadow-sm">
+        <InstallPWA />
+        {/* ── Top Header ── */}
+        <header className="flex items-center justify-between px-3 sm:px-8 h-[56px] sm:h-[72px] bg-[var(--surface)] border-b border-[var(--border)] max-w-full">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              aria-label="Open navigation"
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen(true)}
+              className="rounded-lg p-1.5 text-[var(--text1)] hover:bg-[var(--border)]/50 md:hidden"
             >
-              {item.icon}
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2 sm:gap-6">
-          <div className="hidden flex-col items-end sm:flex">
-            <span className="font-semibold text-[var(--text1)]">{profile.name || profile.email}</span>
-            <span className="text-xs text-[var(--text2)] capitalize">{profile.role}</span>
+              <Menu size={20} />
+            </button>
+            <div className="text-lg sm:text-2xl font-bold tracking-tight text-[var(--text1)]">KanbanKC</div>
           </div>
-          <button
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-[var(--text2)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-400/30 transition-all duration-200 cursor-pointer"
-            onClick={async () => {
-              await signOut(auth)
-              navigate('/')
-            }}
-          >
-            <LogOut size={16} /> Sign out
-          </button>
-        </div>
-      </header>
+          <nav className="hidden gap-1 items-center md:flex">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${location.pathname === item.path || (item.path === '/boards' && ['/org', '/'].includes(location.pathname)) || (item.path === '/calendar' && location.pathname === '/planning')
+                    ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
+                    : 'text-[var(--text2)] hover:bg-[var(--border)]/50 hover:text-[var(--text1)]'
+                  }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2 sm:gap-6">
+            <div className="hidden flex-col items-end sm:flex">
+              <span className="font-semibold text-[var(--text1)]">{profile.name || profile.email}</span>
+              <span className="text-xs text-[var(--text2)] capitalize">{profile.role}</span>
+            </div>
+            <button
+              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-[var(--text2)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-400/30 transition-all duration-200 cursor-pointer text-xs sm:text-sm"
+              onClick={async () => {
+                await signOut(auth)
+                navigate('/')
+              }}
+            >
+              <LogOut size={15} /> <span className="hidden sm:inline">Sign out</span>
+            </button>
+          </div>
+        </header>
 
-      {/* ── Red Warning Banner (Right Below Header) ── */}
-      {profile.isWarned && (
-        <div className="w-full bg-red-600 text-white font-bold text-sm sm:text-base py-2.5 px-4 text-center flex items-center justify-center gap-2 shadow-md z-30 animate-pulse">
-          <AlertTriangle size={20} className="flex-shrink-0" />
-          <span>Warning: You're Under Watch</span>
-        </div>
-      )}
+        {/* ── Red Warning Banner (Right Below Header) ── */}
+        {profile.isWarned && (
+          <div className="w-full bg-red-600 text-white font-bold text-xs sm:text-base py-2 px-3 sm:py-2.5 sm:px-4 text-center flex items-center justify-center gap-2 shadow-md animate-pulse">
+            <AlertTriangle size={18} className="flex-shrink-0" />
+            <span>Warning: You're Under Watch</span>
+          </div>
+        )}
+      </div>
 
       {mobileNavOpen && (
         <button
@@ -318,12 +321,12 @@ function App() {
       </aside>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 min-w-0 w-full max-w-full p-4 sm:p-6 lg:p-8 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<Navigate to="/boards" replace />} />
           <Route path="/boards" element={<BoardsHub />} />
           <Route path="/org" element={<OrgDashboard />} />
-          <Route path="/tree" element={<KCTree />} />
+          <Route path="/tree" element={<COCTree />} />
           <Route path="/reports" element={<ReportingHub />} />
           <Route path="/planning" element={<PlanningHub />} />
           <Route path="/calendar" element={<CalendarHub />} />

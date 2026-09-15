@@ -110,10 +110,16 @@ export default function AdminDashboard() {
     queryFn: fetchUsers,
   })
 
+  const invalidateAllUserQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+    queryClient.invalidateQueries({ queryKey: ['profile'] })
+  }
+
   const warnMutation = useMutation({
     mutationFn: warnUser,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+      invalidateAllUserQueries()
       setSuccessMsg(data.isWarned ? `Warning issued to ${data.name || data.email}` : `Warning lifted for ${data.name || data.email}`)
       setTimeout(() => setSuccessMsg(''), 4000)
     },
@@ -123,7 +129,7 @@ export default function AdminDashboard() {
   const superiorMutation = useMutation({
     mutationFn: updateSuperior,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+      invalidateAllUserQueries()
       setSuccessMsg('Superior updated successfully')
       setTimeout(() => setSuccessMsg(''), 4000)
     },
@@ -133,7 +139,7 @@ export default function AdminDashboard() {
   const roleMutation = useMutation({
     mutationFn: updateRole,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+      invalidateAllUserQueries()
       setSuccessMsg('User role updated successfully')
       setTimeout(() => setSuccessMsg(''), 4000)
     },
@@ -143,7 +149,7 @@ export default function AdminDashboard() {
   const deleteMutation = useMutation({
     mutationFn: deleteUser,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+      invalidateAllUserQueries()
       setDeletingUser(null)
       setSuccessMsg('User account permanently deleted')
       setTimeout(() => setSuccessMsg(''), 4000)
