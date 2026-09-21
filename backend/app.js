@@ -9,12 +9,32 @@ import tasksRouter from "./routes/tasks.js";
 import eventsRouter from "./routes/events.js";
 import sprintsRouter from "./routes/sprints.js";
 import reportsRouter from "./routes/reports.js";
+import securityGateRouter from "./routes/securityGate.js";
 import { verifyFirebaseToken } from "./middleware/auth.js";
 
 const app = express();
 
 // Trust proxy for reverse proxies and Vercel
 app.set("trust proxy", 1);
+
+// Apply security headers to every API response.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        connectSrc: ["'self'", "https://*.vercel.app", "https://kanbankc-oday.onrender.com"],
+      },
+    },
+    frameguard: { action: "deny" },
+    noSniff: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 // Configure CORS
 const getOrigins = () => {
@@ -64,9 +84,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply helmet
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-
 // Parse JSON request bodies.
 app.use(express.json());
 
@@ -111,5 +128,6 @@ app.use("/api/profile", verifyFirebaseToken, profileRouter);
 app.use("/api/events", verifyFirebaseToken, eventsRouter);
 app.use("/api/sprints", verifyFirebaseToken, sprintsRouter);
 app.use("/api/reports", verifyFirebaseToken, reportLimiter, reportsRouter);
+app.use("/api/security-gate", securityGateRouter);
 
 export default app;

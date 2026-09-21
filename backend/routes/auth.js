@@ -4,6 +4,10 @@ import User from '../models/User.js'
 const router = express.Router()
 
 router.post('/session', async (req, res) => {
+  if (req.body?.company_website_url && req.body.company_website_url.trim() !== '') {
+    return res.status(400).json({ error: 'Invalid submission' })
+  }
+
   const firebaseUser = req.user
   if (!firebaseUser) {
     return res.status(401).json({ error: 'Unauthorized' })

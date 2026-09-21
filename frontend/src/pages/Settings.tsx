@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
 import { BACKEND_URL } from '../config'
@@ -156,9 +156,114 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Admin Bot Security Gate Settings */}
+        {profile?.role === 'admin' && <SecurityGateSettings />}
+
         {/* Danger Zone */}
         <DangerZone />
       </div>
+    </div>
+  )
+}
+
+function SecurityGateSettings() {
+  const [question, setQuestion] = useState('')
+  const [answers, setAnswers] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    const fetchAdminConfig = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken()
+        const res = await fetch(`${BACKEND_URL}/api/security-gate/admin`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setQuestion(data.question || '')
+          setAnswers(data.rawAnswersStr || '')
+        }
+      } catch (e) {
+        console.error('Failed to fetch security gate config', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAdminConfig()
+  }, [])
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setMsg('')
+    setErr('')
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/api/security-gate/admin`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ question, answers })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update security gate config')
+      }
+      setMsg('Bot Security Gate updated successfully! (Answers securely hashed)')
+      setTimeout(() => setMsg(''), 3000)
+    } catch (e: any) {
+      setErr(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="mt-10 border-t border-[var(--border)] pt-6">
+      <h3 className="text-[var(--text1)] font-bold mb-1">Bot Security Gate Settings</h3>
+      <p className="text-[var(--text2)] text-sm mb-4">
+        Customize the challenge question and acceptable answers (comma-separated). Answers are securely stored as salted PBKDF2 hashes.
+      </p>
+      <form onSubmit={handleSave} className="flex flex-col gap-4">
+        <label className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
+          Security Question
+          <input
+            type="text"
+            className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3"
+            value={question}
+            onChange={e => setQuestion(e.target.value)}
+            placeholder="e.g. What software platform does KanbanKC belong to?"
+            required
+          />
+        </label>
+        <label className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
+          Acceptable Answers (Comma-separated aliases)
+          <input
+            type="text"
+            className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3"
+            value={answers}
+            onChange={e => setAnswers(e.target.value)}
+            placeholder="e.g. KanbaKan, kanbakan, Kanban"
+            required
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full py-3 rounded-xl bg-[var(--accent)] text-white font-semibold hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+        >
+          {saving ? 'Updating Gate Settings...' : 'Save Security Challenge Settings'}
+        </button>
+        {msg && <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-600 font-semibold text-sm">{msg}</div>}
+        {err && <div className="p-3 rounded-xl bg-red-500/15 text-red-500 font-semibold text-sm">{err}</div>}
+      </form>
     </div>
   )
 }

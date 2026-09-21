@@ -27,6 +27,16 @@ const canModifyTask = async (requester, task) => {
   return false
 }
 
+const getAllSubordinateIds = async (userId) => {
+  const directSubs = await User.find({ superior: userId }).select('_id').lean()
+  let allIds = directSubs.map(s => s._id)
+  for (const sub of directSubs) {
+    const childIds = await getAllSubordinateIds(sub._id)
+    allIds = allIds.concat(childIds)
+  }
+  return allIds
+}
+
 router.get('/org', requireEmployee, async (req, res) => {
   try {
     const user = await User.findOne({ uid: req.user.uid })
@@ -39,10 +49,17 @@ router.get('/org', requireEmployee, async (req, res) => {
     if (req.query.assignee) filter.assignees = req.query.assignee
     if (req.query.sprintId) filter.sprintId = req.query.sprintId
 
-    // Scoping based on role (simple interpretation)
-    // admin sees all. cgrade/employee might be restricted to department, but we'll return all non-deleted for now if no specific scope is strictly defined, or we can look up users in their department.
-    // For now, let's just apply the requested filters.
-    
+    if (req.query.supervisedOnly === 'true') {
+      const subordinateIds = await getAllSubordinateIds(user._id)
+      if (filter.assignees) {
+        const singleAssignee = filter.assignees.toString()
+        const matchesSub = subordinateIds.some(id => id.toString() === singleAssignee)
+        filter.assignees = matchesSub ? singleAssignee : { $in: [] }
+      } else {
+        filter.assignees = { $in: subordinateIds }
+      }
+    }
+
     const tasks = await Task.find(filter)
       .populate('assignees', 'name email department role username')
       .populate('createdBy', 'name email uid username')
@@ -52,8 +69,7 @@ router.get('/org', requireEmployee, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Unable to get org tasks' })
   }
-}
-)
+})
 
 router.get('/personal', requireEmployee, async (req, res) => {
   const user = await User.findOne({ uid: req.user.uid })

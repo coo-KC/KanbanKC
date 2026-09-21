@@ -56,7 +56,7 @@ const streamTasksToCSV = (cursor, res) => {
 
 // GET /api/reports/org
 router.get('/org', requireEmployee, async (req, res) => {
-  const { format } = req.query
+  const { format, username } = req.query
   const filter = { isDeleted: false }
   
   const user = await User.findOne({ uid: req.user.uid })
@@ -66,6 +66,26 @@ router.get('/org', requireEmployee, async (req, res) => {
     const subordinates = await User.find({ superior: user._id }).lean()
     const subordinateIds = subordinates.map(sub => sub._id)
     filter.assignees = { $in: [user._id, ...subordinateIds] }
+  }
+
+  if (username && username.trim()) {
+    const cleanUsername = username.trim().replace(/^@/, '')
+    const targetUsers = await User.find({
+      $or: [
+        { username: new RegExp(cleanUsername, 'i') },
+        { email: new RegExp(cleanUsername, 'i') },
+        { name: new RegExp(cleanUsername, 'i') }
+      ]
+    }).select('_id')
+    
+    const targetIds = targetUsers.map(u => u._id)
+    if (filter.assignees && filter.assignees.$in) {
+      const allowedStrSet = new Set(filter.assignees.$in.map(id => id.toString()))
+      const validIds = targetIds.filter(id => allowedStrSet.has(id.toString()))
+      filter.assignees = { $in: validIds }
+    } else {
+      filter.assignees = { $in: targetIds }
+    }
   }
 
   const cursor = Task.find(filter).populate('assignees', 'name email username').cursor()

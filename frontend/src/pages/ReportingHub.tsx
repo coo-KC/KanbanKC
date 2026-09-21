@@ -1,22 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { auth } from '../firebase'
-import { FileText, Download } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { BACKEND_URL } from '../config'
 
 export default function ReportingHub() {
   const [scope, setScope] = useState<'self' | 'org'>('self')
+  const [usernameFilter, setUsernameFilter] = useState('')
+  const [usersList, setUsersList] = useState<any[]>([])
   const [previewData, setPreviewData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken()
+        if (!token) return
+        const res = await fetch(`${BACKEND_URL}/api/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUsersList(data)
+        }
+      } catch (e) {
+        console.error('Failed to fetch users list', e)
+      }
+    }
+    fetchUsers()
+  }, [])
 
   const handlePreview = async () => {
     setLoading(true)
     setError('')
     try {
       const token = await auth.currentUser?.getIdToken()
-      const res = await fetch(`${BACKEND_URL}/api/reports/${scope}?format=json`, {
+      let url = `${BACKEND_URL}/api/reports/${scope}?format=json`
+      if (scope === 'org' && usernameFilter.trim()) {
+        url += `&username=${encodeURIComponent(usernameFilter.trim())}`
+      }
+      const res = await fetch(url, {
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}` 
@@ -36,41 +61,26 @@ export default function ReportingHub() {
     }
   }
 
-  const exportCSV = async () => {
-    try {
-      const token = await auth.currentUser?.getIdToken()
-      const res = await fetch(`${BACKEND_URL}/api/reports/${scope}?format=csv`, {
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        credentials: 'include'
-      })
-      if (!res.ok) throw new Error('Failed to export CSV')
-      
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `report-${scope}-${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-    } catch (err: any) {
-      alert(err.message)
-    }
-  }
+
+
+  const displayedData = previewData.filter(row => {
+    if (scope !== 'org' || !usernameFilter.trim()) return true
+    const filterText = usernameFilter.trim().toLowerCase().replace(/^@/, '')
+    const assigneeStr = (row['Assignee'] || '').toLowerCase()
+    return assigneeStr.includes(filterText)
+  })
 
   const exportPDF = () => {
-    if (previewData.length === 0) {
-      alert('Generate a preview first to export PDF')
+    if (displayedData.length === 0) {
+      alert('No data available to export PDF')
       return
     }
     const doc = new jsPDF()
-    doc.text(`KanbanKC ${scope === 'org' ? 'Organization' : 'Personal'} Report`, 14, 15)
+    const subtitle = usernameFilter.trim() ? ` (Filtered by: ${usernameFilter.trim()})` : ''
+    doc.text(`KanbanKC ${scope === 'org' ? 'Organization' : 'Personal'} Report${subtitle}`, 14, 15)
     
     const head = [['ID', 'Title', 'Assignee', 'Status', 'Priority', 'Completed']]
-    const body = previewData.map(row => [
+    const body = displayedData.map(row => [
       row['Task ID'].substring(row['Task ID'].length - 6), // abbreviate ID
       row['Title'],
       row['Assignee'],
@@ -87,7 +97,8 @@ export default function ReportingHub() {
       headStyles: { fillColor: [59, 130, 246] }
     })
     
-    doc.save(`report-${scope}-${new Date().toISOString().split('T')[0]}.pdf`)
+    const suffix = usernameFilter.trim() ? `-${usernameFilter.trim().replace(/^@/, '')}` : ''
+    doc.save(`report-${scope}${suffix}-${new Date().toISOString().split('T')[0]}.pdf`)
   }
 
   return (
@@ -106,6 +117,39 @@ export default function ReportingHub() {
               <option value="org">Organization Tasks (Admin/C-Grade)</option>
             </select>
           </label>
+
+          {scope === 'org' && (
+            <label className="flex-1 flex flex-col gap-1.5 font-semibold text-[var(--text1)] text-xs sm:text-sm">
+              Filter by Username / User
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type username or select..."
+                  value={usernameFilter}
+                  onChange={e => setUsernameFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-[var(--bg)] text-[var(--text1)] border border-[var(--border)] rounded-xl text-xs sm:text-sm outline-none focus:border-[var(--accent)]"
+                />
+                {usersList.length > 0 && (
+                  <select
+                    value={usernameFilter}
+                    onChange={e => setUsernameFilter(e.target.value)}
+                    className="w-auto px-3 py-2 bg-[var(--bg)] text-[var(--text1)] border border-[var(--border)] rounded-xl text-xs sm:text-sm outline-none focus:border-[var(--accent)] cursor-pointer"
+                  >
+                    <option value="">All Users</option>
+                    {usersList.map(u => {
+                      const val = u.username ? `@${u.username}` : (u.email || u.name)
+                      return (
+                        <option key={u._id} value={val}>
+                          {u.name || u.email} {u.username ? `(@${u.username})` : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
+                )}
+              </div>
+            </label>
+          )}
+
           <button className="w-full sm:w-auto px-4 py-2 bg-[var(--accent)] text-white rounded-xl font-semibold text-xs sm:text-sm hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0" onClick={handlePreview} disabled={loading}>
             {loading ? 'Loading...' : 'Preview Data'}
           </button>
@@ -116,12 +160,12 @@ export default function ReportingHub() {
       <div className="flex-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 sm:p-6 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <h3 className="m-0 text-[var(--text1)] font-bold text-sm sm:text-base flex items-center gap-2">
-            Data Preview <span className="text-xs font-normal text-[var(--text2)]">({previewData.length} records)</span>
+            Data Preview <span className="text-xs font-normal text-[var(--text2)]">({displayedData.length} records)</span>
           </h3>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button className="flex-1 sm:flex-none bg-emerald-600 text-white rounded-xl px-3 py-1.5 text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer" onClick={exportCSV}>
+            {/* <button className="flex-1 sm:flex-none bg-emerald-600 text-white rounded-xl px-3 py-1.5 text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer" onClick={exportCSV}>
               <Download size={14} /> Export CSV
-            </button>
+            </button> */}
             <button className="flex-1 sm:flex-none bg-rose-600 text-white rounded-xl px-3 py-1.5 text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer" onClick={exportPDF}>
               <FileText size={14} /> Export PDF
             </button>
@@ -141,10 +185,10 @@ export default function ReportingHub() {
               </tr>
             </thead>
             <tbody>
-              {previewData.length === 0 ? (
-                <tr><td colSpan={6} className="py-6 text-center text-[var(--text2)]">No data to preview. Run configuration above.</td></tr>
+              {displayedData.length === 0 ? (
+                <tr><td colSpan={6} className="py-6 text-center text-[var(--text2)]">No data matching filter.</td></tr>
               ) : (
-                previewData.map((row, i) => (
+                displayedData.map((row, i) => (
                   <tr key={i} className="hover:bg-[var(--bg)] transition-all">
                     <td className="px-3 py-3 text-[var(--text1)] border-b border-[var(--border)]/50">{row['Title']}</td>
                     <td className="px-3 py-3 text-[var(--text2)] border-b border-[var(--border)]/50">{row['Assignee']}</td>

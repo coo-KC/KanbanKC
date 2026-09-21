@@ -6,7 +6,7 @@ import { BACKEND_URL } from '../config';
 
 const VAPID_KEY = 'BAU9GDVtt33a3ktDiyHza3PZuBagmGDOFHKw-FHvvjCtEFj9_Ilzv3PsKFkC-oCt_UUXz6lIpyjRZlA6UNaFqpE';
 
-export const useFCM = () => {
+export const useFCM = (onWarning?: () => void) => {
   const registered = useRef(false);
 
   useEffect(() => {
@@ -66,6 +66,10 @@ export const useFCM = () => {
 
     const unsubMessage = onMessage(messaging, (payload) => {
       console.log('Foreground message received: ', payload);
+      if (payload.data?.type === 'warning') {
+        onWarning?.();
+      }
+
       if (Notification.permission === 'granted') {
         const title = payload.notification?.title || payload.data?.title || 'KanbanKC Notification';
         const body = payload.notification?.body || payload.data?.body || '';

@@ -5,9 +5,15 @@ import { auth } from '../firebase'
 import { MessageSquare, Trash2, Edit, Send, Plus, Link2, LayoutDashboard } from 'lucide-react'
 import { BACKEND_URL } from '../config'
 
-const fetchOrgTasks = async (filters: Record<string, string>) => {
+const fetchOrgTasks = async (filters: Record<string, any>) => {
   const token = await auth.currentUser?.getIdToken()
-  const params = new URLSearchParams(filters)
+  const cleanFilters: Record<string, string> = {}
+  if (filters.status) cleanFilters.status = filters.status
+  if (filters.priority) cleanFilters.priority = filters.priority
+  if (filters.assignee) cleanFilters.assignee = filters.assignee
+  if (filters.supervisedOnly) cleanFilters.supervisedOnly = 'true'
+
+  const params = new URLSearchParams(cleanFilters)
   const res = await fetch(`${BACKEND_URL}/api/tasks/org?${params.toString()}`, {
     headers: { 
       'Content-Type': 'application/json',
@@ -110,7 +116,12 @@ const STATUSES = ['todo', 'in_progress', 'halted', 'completed', 'cancelled']
 
 export default function OrgDashboard() {
   const queryClient = useQueryClient()
-  const [filters, setFilters] = useState({ status: '', priority: '', assignee: '' })
+  const [filters, setFilters] = useState<{ status: string; priority: string; assignee: string; supervisedOnly: boolean }>({
+    status: '',
+    priority: '',
+    assignee: '',
+    supervisedOnly: false,
+  })
   const [selectedTask, setSelectedTask] = useState<any>(null)
   const [editingTask, setEditingTask] = useState<any>(null)
   const [commentText, setCommentText] = useState('')
@@ -233,6 +244,16 @@ export default function OrgDashboard() {
           >
             <LayoutDashboard size={16} /> My Board
           </Link>
+
+          <select
+            value={filters.supervisedOnly ? 'supervised' : 'all'}
+            onChange={e => setFilters({...filters, supervisedOnly: e.target.value === 'supervised'})}
+            className="border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] font-semibold cursor-pointer"
+          >
+            <option value="all">Whole Organization</option>
+            <option value="supervised">Under My Supervision Only</option>
+          </select>
+
           <select 
             value={filters.status} 
             onChange={e => setFilters({...filters, status: e.target.value})}

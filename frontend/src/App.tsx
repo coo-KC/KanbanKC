@@ -22,6 +22,7 @@ import Settings from './pages/Settings'
 import COCTree from './pages/COCTree'
 import AdminDashboard from './pages/AdminDashboard'
 import InstallPWA from './components/InstallPWA'
+import SecurityGate from './components/SecurityGate'
 import { BACKEND_URL } from './config'
 
 function BoardsHub() {
@@ -72,8 +73,6 @@ type UserProfile = {
 }
 
 function App() {
-  useFCM()
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignup, setIsSignup] = useState(false)
@@ -83,16 +82,29 @@ function App() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [securityGatePassed, setSecurityGatePassed] = useState<boolean>(
+    () => sessionStorage.getItem('securityGatePassed') === 'true'
+  )
   const navigate = useNavigate()
   const location = useLocation()
 
+  useFCM(() => {
+    setProfile((currentProfile) => currentProfile ? { ...currentProfile, isWarned: true } : currentProfile)
+  })
+
   const fetchSession = async (token: string) => {
+    const gateToken = sessionStorage.getItem('gateToken') || ''
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    }
+    if (gateToken) {
+      headers['x-gate-token'] = gateToken
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/auth/session`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       credentials: 'include',
     })
     if (!response.ok) {
@@ -218,6 +230,9 @@ function App() {
   }
 
   if (!user || !profile) {
+    if (!securityGatePassed) {
+      return <SecurityGate onPassed={() => setSecurityGatePassed(true)} />
+    }
     return authForm
   }
 
@@ -231,7 +246,7 @@ function App() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--bg)]">
+    <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-clip bg-[var(--bg)]">
       {/* ── Sticky Top Navigation & Banner Bar (Pinned to top of screen) ── */}
       <div className="sticky top-0 z-50 w-full max-w-full flex flex-col shadow-sm">
         <InstallPWA />
@@ -342,7 +357,7 @@ function App() {
           <a href="#" className="text-[var(--text2)] font-medium text-sm hover:text-[var(--accent)] transition-colors duration-200">Twitter / X</a>
           <a href="#" className="text-[var(--text2)] font-medium text-sm hover:text-[var(--accent)] transition-colors duration-200">LinkedIn</a>
         </div>
-        <p className="text-[var(--text2)] text-sm">&copy; {new Date().getFullYear()} KanbanKC. All rights reserved.</p>
+        <p className="text-[var(--text2)] text-sm">&copy; {new Date().getFullYear()} KanbaKan. All rights reserved.</p>
       </footer>
 
       {/* ── Theme Toggle ── */}
