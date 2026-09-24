@@ -37,9 +37,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  
-  // Skip non-GET requests and API calls from cache interception
-  if (request.method !== 'GET' || request.url.includes('/api/')) {
+  const isHttpRequest = /^https?:\/\//.test(request.url);
+
+  // Skip non-GET requests, API calls, and unsupported URL schemes like chrome-extension://
+  if (!isHttpRequest || request.method !== 'GET' || request.url.includes('/api/')) {
     return;
   }
 

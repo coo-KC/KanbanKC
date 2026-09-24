@@ -158,6 +158,7 @@ export default function Settings() {
 
         {/* Admin Bot Security Gate Settings */}
         {profile?.role === 'admin' && <SecurityGateSettings />}
+        {profile?.role === 'admin' && <SecurityGateReportPanel />}
 
         {/* Danger Zone */}
         <DangerZone />
@@ -264,6 +265,144 @@ function SecurityGateSettings() {
         {msg && <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-600 font-semibold text-sm">{msg}</div>}
         {err && <div className="p-3 rounded-xl bg-red-500/15 text-red-500 font-semibold text-sm">{err}</div>}
       </form>
+    </div>
+  )
+}
+
+function SecurityGateReportPanel() {
+  const [reports, setReports] = useState<any[]>([])
+  const [banList, setBanList] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [workingId, setWorkingId] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const fetchReports = async () => {
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/api/security-gate/admin/reports`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to load security gate reports')
+      }
+
+      const data = await res.json()
+      setReports(data.reports || [])
+      setBanList(data.banList || [])
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchReports()
+  }, [])
+
+  const handleDecision = async (reportId: string, decision: 'red' | 'green') => {
+    setWorkingId(reportId)
+    setMessage('')
+    setError('')
+
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/api/security-gate/admin/reports/${reportId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ decision, note: decision === 'red' ? 'Confirmed abusive IP' : 'Mistaken report cleared' }),
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update report')
+      }
+
+      const data = await res.json()
+      setReports(data.reports || [])
+      setBanList(data.banList || [])
+      setMessage(decision === 'red' ? 'IP was permanently banned.' : 'IP ban was removed.')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setWorkingId('')
+    }
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="mt-10 border-t border-[var(--border)] pt-6">
+      <h3 className="text-[var(--text1)] font-bold mb-1">Security Gate Abuse Review</h3>
+      <p className="text-[var(--text2)] text-sm mb-4">
+        Reviews are created automatically after repeated wrong answers from the same IP. Mark a report as red to permanently ban the IP or green to clear a mistaken flag.
+      </p>
+
+      {message && <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 text-emerald-600 font-semibold text-sm">{message}</div>}
+      {error && <div className="mb-4 p-3 rounded-xl bg-red-500/15 text-red-500 font-semibold text-sm">{error}</div>}
+
+      <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
+        <div className="text-xs uppercase tracking-wider text-[var(--text2)] font-bold mb-2">Permanent bans</div>
+        {banList.length === 0 ? (
+          <span className="text-sm text-[var(--text2)]">No banned IP addresses.</span>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {banList.map((ip) => (
+              <span key={ip} className="inline-flex rounded-full border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-500">
+                {ip}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {reports.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text2)]">
+          No abuse reports yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reports.map((report) => (
+            <div key={report.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-bold text-[var(--text1)]">IP: {report.ip}</div>
+                  <div className="text-xs text-[var(--text2)]">
+                    {new Date(report.createdAt).toLocaleString()} • {report.status}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={workingId === report.id}
+                    onClick={() => handleDecision(report.id, 'green')}
+                    className="px-3 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 font-semibold text-xs hover:opacity-90 disabled:opacity-50"
+                  >
+                    {workingId === report.id ? 'Updating...' : 'Green'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={workingId === report.id}
+                    onClick={() => handleDecision(report.id, 'red')}
+                    className="px-3 py-2 rounded-xl border border-red-500/40 bg-red-500/10 text-red-500 font-semibold text-xs hover:opacity-90 disabled:opacity-50"
+                  >
+                    {workingId === report.id ? 'Updating...' : 'Red'}
+                  </button>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-[var(--text2)]">{report.reason}</p>
+              {report.userAgent && <p className="mt-2 text-[11px] text-[var(--text2)]">User-Agent: {report.userAgent}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

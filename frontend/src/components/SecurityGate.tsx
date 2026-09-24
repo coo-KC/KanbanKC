@@ -125,7 +125,7 @@ export default function SecurityGate({ onPassed }: SecurityGateProps) {
           </div>
           <h1 className="text-3xl font-bold text-[var(--text1)]">Security Verification</h1>
           <p className="mt-2 text-[var(--text2)] text-sm">
-            Anti-bot protection gate. Please answer the security question to access login or registration.
+            To ensure you're one of us, please answer the security question to access login or registration.
           </p>
         </header>
 
