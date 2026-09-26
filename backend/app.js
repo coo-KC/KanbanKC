@@ -108,7 +108,16 @@ const errorHandler = (err, req, res, next) => {
 };
 app.use(errorHandler);
 
-// Rate limiters
+// Public / Health Routes (exempt from rate limits)
+app.get("/", (req, res) => {
+  res.json({ status: "ok", name: "KanbanKC API", version: "1.0.0" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", uptime: process.uptime ? process.uptime() : 0 });
+});
+
+// Rate limiters for API endpoints
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -118,15 +127,6 @@ app.use(limiter);
 const reportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-});
-
-// Base Routes
-app.get("/", (req, res) => {
-  res.json({ status: "ok", name: "KanbanKC API", version: "1.0.0" });
-});
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", uptime: process.uptime ? process.uptime() : 0 });
 });
 
 // API Routes

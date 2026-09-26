@@ -17,16 +17,20 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   
-  const notificationTitle = payload.notification?.title || payload.data?.title || 'KanbanKC Notification';
-  const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [100, 50, 100],
-    data: payload.data || {},
-  };
+  // If payload already has a `notification` property, Firebase Web SDK automatically displays it in background/closed state.
+  // Manually calling showNotification() when payload.notification exists produces duplicate (double) notifications on devices.
+  if (!payload.notification && (payload.data?.title || payload.data?.body)) {
+    const notificationTitle = payload.data?.title || 'KanbanKC Notification';
+    const notificationOptions = {
+      body: payload.data?.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [100, 50, 100],
+      data: payload.data || {},
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  }
 });
 
 self.addEventListener('notificationclick', function(event) {
