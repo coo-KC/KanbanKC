@@ -39,8 +39,10 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const isHttpRequest = /^https?:\/\//.test(request.url);
 
-  // Skip non-GET requests, API calls, and unsupported URL schemes like chrome-extension://
-  if (!isHttpRequest || request.method !== 'GET' || request.url.includes('/api/')) {
+  const url = new URL(request.url);
+
+  // Skip non-GET requests, API calls, cross-origin requests, and unsupported schemes
+  if (!isHttpRequest || request.method !== 'GET' || request.url.includes('/api/') || url.origin !== self.location.origin) {
     return;
   }
 

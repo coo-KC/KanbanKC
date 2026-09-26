@@ -26,7 +26,16 @@ app.use(
         baseUri: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
-        connectSrc: ["'self'", "https://*.vercel.app", "https://kanbankc-oday.onrender.com"],
+        connectSrc: [
+          "'self'",
+          "https://*.vercel.app",
+          "https://kanbankc-oday.onrender.com",
+          "https://apis.google.com",
+          "https://*.google.com",
+          "https://*.googleapis.com",
+          "https://*.firebaseio.com",
+          "https://*.firebaseapp.com"
+        ],
       },
     },
     frameguard: { action: "deny" },
@@ -64,7 +73,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-gate-token"],
     optionsSuccessStatus: 200,
     preflightContinue: false,
     maxAge: 86400,
@@ -77,7 +86,7 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-gate-token");
     res.header("Access-Control-Max-Age", "86400");
     return res.sendStatus(200);
   }
