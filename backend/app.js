@@ -108,19 +108,23 @@ const errorHandler = (err, req, res, next) => {
 };
 app.use(errorHandler);
 
-// Public / Health Routes (exempt from rate limits)
+// Public / Health Routes (must remain outside the global API limiter)
 app.get("/", (req, res) => {
-  res.json({ status: "ok", name: "KanbanKC API", version: "1.0.0" });
+  res.status(200).json({ status: "ok", name: "KanbanKC API", version: "1.0.0" });
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", uptime: process.uptime ? process.uptime() : 0 });
+  res.status(200).json({ status: "ok", uptime: process.uptime ? process.uptime() : 0 });
 });
 
-// Rate limiters for API endpoints
+// Rate limiters for API endpoints. Keep /health exempt so Render cron jobs do not hit 429s.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  skip: (req) => {
+    const path = req.path || "/";
+    return path === "/health" || path === "/";
+  },
 });
 app.use(limiter);
 
