@@ -109,7 +109,8 @@ function App() {
       credentials: 'include',
     })
     if (!response.ok) {
-      throw new Error('Failed to establish backend session')
+      const data = await response.json().catch(() => ({}))
+      throw new Error(data.error || 'Failed to establish backend session')
     }
     return response.json() as Promise<UserProfile>
   }

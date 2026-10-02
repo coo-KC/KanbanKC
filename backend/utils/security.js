@@ -1,6 +1,10 @@
 import crypto from 'crypto'
 
-const JWT_SECRET = process.env.GATE_JWT_SECRET || 'kanbakan_security_gate_jwt_secret_key_2026'
+if (!process.env.GATE_JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('GATE_JWT_SECRET must be configured in production.')
+}
+
+const JWT_SECRET = process.env.GATE_JWT_SECRET || crypto.randomBytes(32).toString('hex')
 
 // Normalize input string: trim, lowercase, collapse multiple spaces
 export const normalizeInput = (str) => {

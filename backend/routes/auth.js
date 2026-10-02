@@ -14,14 +14,34 @@ router.post('/session', async (req, res) => {
   }
 
   try {
-    let user = await User.findOne({ uid: firebaseUser.uid })
-    if (!user) {
-      user = await User.create({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || '',
-        name: firebaseUser.name || '',
-        role: firebaseUser.role || 'employee',
-      })
+    let user
+    try {
+      user = await User.findOneAndUpdate(
+        { uid: firebaseUser.uid },
+        {
+          $setOnInsert: {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.name || '',
+            role: firebaseUser.role || 'employee',
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+      )
+    } catch (error) {
+      if (error?.code !== 11000) throw error
+
+      user = await User.findOne({ uid: firebaseUser.uid })
+      if (!user && firebaseUser.email) {
+        const emailConflict = await User.exists({ email: firebaseUser.email })
+        if (emailConflict) {
+          return res.status(409).json({
+            error: 'An account with this email already exists. Sign in with the original account or provider.',
+          })
+        }
+      }
+
+      if (!user) throw error
     }
 
     res.json({
@@ -33,7 +53,11 @@ router.post('/session', async (req, res) => {
       isWarned: !!user.isWarned,
     })
   } catch (error) {
-    console.error('Session creation failed:', error)
+    console.error('Session creation failed:', {
+      name: error?.name,
+      code: error?.code,
+      keyPattern: error?.keyPattern,
+    })
     res.status(500).json({ error: 'Unable to create or retrieve session' })
   }
 })

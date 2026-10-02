@@ -5,6 +5,9 @@ node_modules
 
 # Environment variables
 .env
+.env.*
+!.env.example
+!.env.*.example
 .env.local
 .env.development.local
 .env.test.local
@@ -20,6 +23,16 @@ out
 # Firebase
 firebase-debug.log
 .firebase/
+**/serviceAccountKey*.json
+**/*firebase-adminsdk*.json
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
 
 # Logs
 npm-debug.log*

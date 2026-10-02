@@ -1,11 +1,9 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import mongoose from "mongoose";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import fs from "fs";
 import app from "./app.js";
 import { startDeadlineCron } from "./cron/deadlines.js";
-
-dotenv.config();
 
 const {
   MONGODB_URI,
