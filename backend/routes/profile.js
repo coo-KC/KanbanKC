@@ -1,7 +1,6 @@
 import express from 'express'
-import { getAuth } from 'firebase-admin/auth'
 import User from '../models/User.js'
-import { clearUserCache } from '../middleware/auth.js'
+import { findOrCreateOrBindUser, purgeUserCompletely } from '../utils/userUtils.js'
 
 const router = express.Router()
 
@@ -12,18 +11,7 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    let user = await User.findOne({ uid: firebaseUser.uid })
-    if (!user) {
-      user = await User.create({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || '',
-        name: firebaseUser.name || '',
-        role: firebaseUser.role || 'employee',
-      })
-    } else if (firebaseUser.role && user.role !== firebaseUser.role) {
-      user.role = firebaseUser.role
-      await user.save()
-    }
+    const user = await findOrCreateOrBindUser(firebaseUser)
 
     res.json({
       uid: user.uid,
@@ -127,19 +115,15 @@ router.delete('/', async (req, res) => {
   if (!firebaseUser) return res.status(401).json({ error: 'Unauthorized' })
 
   try {
-    const user = await User.findOne({ uid: firebaseUser.uid })
+    const user = await User.findOne({
+      $or: [
+        { uid: firebaseUser.uid },
+        ...(firebaseUser.email ? [{ email: firebaseUser.email.trim().toLowerCase() }] : []),
+      ],
+    })
     if (!user) return res.status(404).json({ error: 'User not found' })
 
-    // Delete user from Firebase Auth
-    try {
-      await getAuth().deleteUser(user.uid)
-    } catch (fbErr) {
-      console.warn('Firebase user deletion warning (may already be deleted):', fbErr.message)
-    }
-
-    // Delete user from MongoDB
-    await User.deleteOne({ _id: user._id })
-    clearUserCache(user.uid)
+    await purgeUserCompletely(user)
 
     res.json({ message: 'Account deleted successfully' })
   } catch (error) {

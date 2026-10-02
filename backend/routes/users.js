@@ -4,6 +4,7 @@ import User from '../models/User.js'
 import { roles, requireAdmin, requireEmployee } from '../middleware/rbac.js'
 import { clearUserCache } from '../middleware/auth.js'
 import { sendNotificationToUsers } from '../utils/messaging.js'
+import { purgeUserCompletely } from '../utils/userUtils.js'
 
 const getAllSubordinateIds = async (userId) => {
   const directSubs = await User.find({ superior: userId }).select('_id').lean()
@@ -183,15 +184,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    // Delete user from Firebase Auth
-    try {
-      await getAuth().deleteUser(user.uid)
-    } catch (fbErr) {
-      console.warn('Firebase admin deletion warning:', fbErr.message)
-    }
-
-    await User.deleteOne({ _id: user._id })
-    clearUserCache(user.uid)
+    await purgeUserCompletely(user)
 
     res.json({ message: 'User deleted successfully' })
   } catch (error) {
