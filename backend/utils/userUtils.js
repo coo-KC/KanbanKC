@@ -14,6 +14,7 @@ export const findOrCreateOrBindUser = async (firebaseUser) => {
 
   const rawEmail = firebaseUser.email || ''
   const cleanEmail = rawEmail.trim().toLowerCase()
+  const defaultEmail = cleanEmail || `${firebaseUser.uid}@kanbankc.internal`
 
   // 1. Try finding by exact Firebase UID
   let user = await User.findOne({ uid: firebaseUser.uid })
@@ -35,7 +36,7 @@ export const findOrCreateOrBindUser = async (firebaseUser) => {
   if (!user) {
     user = await User.create({
       uid: firebaseUser.uid,
-      email: cleanEmail,
+      email: defaultEmail,
       name: firebaseUser.name || '',
       role: firebaseUser.role || 'employee',
     })

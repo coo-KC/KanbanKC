@@ -26,8 +26,8 @@ router.post('/session', async (req, res) => {
       isWarned: !!user.isWarned,
     })
   } catch (error) {
-    console.error('Session creation failed:', error)
-    res.status(500).json({ error: 'Unable to create or retrieve session' })
+    console.error('Session creation failed:', error?.stack || error)
+    res.status(500).json({ error: error?.message || 'Unable to create or retrieve session' })
   }
 })
 
