@@ -20,10 +20,33 @@ const router = express.Router()
 
 router.get('/', requireEmployee, async (req, res) => {
   try {
-    const users = await User.find({})
+    let users = await User.find({})
       .select('email name role department username superior isWarned uid')
       .populate('superior', 'name email username')
       .lean()
+
+    // Auto-heal any placeholder emails (@kanbankc.internal) using Firebase Admin Auth
+    const healingPromises = users.map(async (u) => {
+      if (u.email && u.email.endsWith('@kanbankc.internal') && u.uid) {
+        try {
+          const fbUser = await getAuth().getUser(u.uid)
+          if (fbUser && fbUser.email && fbUser.email !== u.email) {
+            const cleanEmail = fbUser.email.trim().toLowerCase()
+            const existingWithEmail = await User.findOne({ email: cleanEmail, _id: { $ne: u._id } })
+            if (!existingWithEmail) {
+              await User.updateOne({ _id: u._id }, { email: cleanEmail })
+              u.email = cleanEmail
+              clearUserCache(u.uid)
+            }
+          }
+        } catch (fbErr) {
+          // ignore lookup errors
+        }
+      }
+      return u
+    })
+
+    users = await Promise.all(healingPromises)
     res.json(users)
   } catch (error) {
     console.error('List users failed:', error)
@@ -182,6 +205,52 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Delete user failed:', error)
     res.status(500).json({ error: 'Unable to delete user' })
+  }
+})
+
+router.patch('/:id/email', requireAdmin, async (req, res) => {
+  const { id } = req.params
+  const { email } = req.body
+
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid email address is required' })
+  }
+
+  const cleanEmail = email.trim().toLowerCase()
+
+  try {
+    const user = await User.findById(id)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const existing = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } })
+    if (existing) {
+      return res.status(400).json({ error: 'Email address is already in use by another user' })
+    }
+
+    if (user.uid) {
+      try {
+        await getAuth().updateUser(user.uid, { email: cleanEmail })
+      } catch (fbErr) {
+        console.warn('Could not update email in Firebase Auth:', fbErr.message)
+      }
+    }
+
+    user.email = cleanEmail
+    await user.save()
+    clearUserCache(user.uid)
+
+    res.json({
+      _id: user._id,
+      uid: user.uid,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    })
+  } catch (error) {
+    console.error('Update email failed:', error)
+    res.status(500).json({ error: 'Unable to update user email' })
   }
 })
 

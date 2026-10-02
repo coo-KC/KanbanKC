@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
 import { BACKEND_URL } from '../config'
-import { AlertTriangle, Trash2, Shield, UserCheck, Search, CheckCircle, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, Trash2, Shield, UserCheck, Search, CheckCircle, ShieldAlert, Edit3, Mail } from 'lucide-react'
 
 type UserItem = {
   _id: string
@@ -86,6 +86,24 @@ const updateRole = async ({ id, role }: { id: string; role: string }) => {
   return res.json()
 }
 
+const updateEmail = async ({ id, email }: { id: string; email: string }) => {
+  const token = await auth.currentUser?.getIdToken()
+  const res = await fetch(`${BACKEND_URL}/api/users/${id}/email`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ email }),
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Failed to update email address')
+  }
+  return res.json()
+}
+
 const deleteUser = async (id: string) => {
   const token = await auth.currentUser?.getIdToken()
   const res = await fetch(`${BACKEND_URL}/api/users/${id}`, {
@@ -105,6 +123,8 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null)
+  const [editingEmailUser, setEditingEmailUser] = useState<UserItem | null>(null)
+  const [newEmailInput, setNewEmailInput] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
   const { data: users = [], isLoading, error } = useQuery({
@@ -143,6 +163,18 @@ export default function AdminDashboard() {
     onSuccess: () => {
       invalidateAllUserQueries()
       setSuccessMsg('User role updated successfully')
+      setTimeout(() => setSuccessMsg(''), 4000)
+    },
+    onError: (err: Error) => alert(err.message),
+  })
+
+  const emailMutation = useMutation({
+    mutationFn: updateEmail,
+    onSuccess: () => {
+      invalidateAllUserQueries()
+      setEditingEmailUser(null)
+      setNewEmailInput('')
+      setSuccessMsg('User email address updated successfully')
       setTimeout(() => setSuccessMsg(''), 4000)
     },
     onError: (err: Error) => alert(err.message),
@@ -253,7 +285,14 @@ export default function AdminDashboard() {
                       {/* Name & Email */}
                       <td className="p-4">
                         <div className="font-semibold text-[var(--text1)]">{u.name || 'Unnamed User'}</div>
-                        <div className="text-xs text-[var(--text2)]">{u.email}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-xs text-[var(--text2)] font-mono">{u.email}</span>
+                          {u.email.endsWith('@kanbankc.internal') && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-300 font-semibold border border-amber-500/30" title="Placeholder generated from user UID">
+                              Internal Placeholder
+                            </span>
+                          )}
+                        </div>
                         {u.department && (
                           <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text2)] uppercase font-semibold">
                             {u.department}
@@ -317,6 +356,18 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
+                            onClick={() => {
+                              setEditingEmailUser(u)
+                              setNewEmailInput(u.email.endsWith('@kanbankc.internal') ? '' : u.email)
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[var(--bg)] text-[var(--text1)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-semibold transition-all duration-200 cursor-pointer"
+                            title="Edit User Email"
+                          >
+                            <Edit3 size={14} /> Edit Email
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => warnMutation.mutate({ id: u._id, isWarned: !u.isWarned })}
                             disabled={warnMutation.isPending}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer ${
@@ -348,6 +399,67 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Edit Email Modal */}
+      {editingEmailUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-2xl w-full max-w-md space-y-4">
+            <div className="flex items-center gap-3 text-[var(--accent)]">
+              <div className="p-3 rounded-full bg-[var(--accent)]/15">
+                <Mail size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-[var(--text1)]">Update User Email</h3>
+            </div>
+            <p className="text-sm text-[var(--text2)] leading-relaxed">
+              Set a new primary email address for{' '}
+              <strong className="text-[var(--text1)]">{editingEmailUser.name || editingEmailUser.email}</strong>.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (newEmailInput.trim()) {
+                  emailMutation.mutate({ id: editingEmailUser._id, email: newEmailInput.trim() })
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text2)] uppercase mb-1">
+                  New Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. user@company.com"
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--text1)] outline-none focus:border-[var(--accent)]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEmailUser(null)
+                    setNewEmailInput('')
+                  }}
+                  className="px-4 py-2 text-[var(--text1)] hover:bg-[var(--bg)] rounded-xl border border-[var(--border)] text-sm font-semibold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={emailMutation.isPending || !newEmailInput.trim()}
+                  className="px-5 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {emailMutation.isPending ? 'Updating...' : 'Save Email'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Delete User Confirmation Modal */}
       {deletingUser && (

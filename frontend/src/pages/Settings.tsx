@@ -147,8 +147,23 @@ export default function Settings() {
             <input type="text" readOnly value={profile?.uid || ''} className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3 opacity-60 cursor-not-allowed" />
           </div>
           <div className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm mb-4">
-            <label>Email Address</label>
-            <input type="text" readOnly value={profile?.email || ''} className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3 opacity-60 cursor-not-allowed" />
+            <label className="flex items-center justify-between">
+              <span>Email Address</span>
+              {profile?.email?.endsWith('@kanbankc.internal') && (
+                <span className="text-xs text-amber-500 font-normal">Internal Placeholder</span>
+              )}
+            </label>
+            <input 
+              type="text" 
+              readOnly 
+              value={profile?.email || ''} 
+              className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3 opacity-60 cursor-not-allowed" 
+            />
+            {profile?.email?.endsWith('@kanbankc.internal') && (
+              <p className="text-xs text-amber-500/90 font-normal">
+                ⚠️ Your email address was generated as an internal system fallback. An admin can update your official email address anytime in the Admin Dashboard.
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
             <label>System Role</label>

@@ -12,14 +12,46 @@ export const findOrCreateOrBindUser = async (firebaseUser) => {
     throw new Error('Firebase user payload with UID is required')
   }
 
-  const rawEmail = firebaseUser.email || ''
+  let rawEmail = firebaseUser.email || ''
+
+  // 1. If email is missing in the decoded ID token, attempt to fetch user from Firebase Admin SDK
+  if (!rawEmail) {
+    try {
+      const fbUser = await getAuth().getUser(firebaseUser.uid)
+      if (fbUser && fbUser.email) {
+        rawEmail = fbUser.email
+      }
+    } catch (fbErr) {
+      console.warn('Could not fetch Firebase Auth user details:', fbErr.message)
+    }
+  }
+
   const cleanEmail = rawEmail.trim().toLowerCase()
   const defaultEmail = cleanEmail || `${firebaseUser.uid}@kanbankc.internal`
 
-  // 1. Try finding by exact Firebase UID
+  // 2. Try finding by exact Firebase UID
   let user = await User.findOne({ uid: firebaseUser.uid })
 
-  // 2. If not found by UID, try finding by email
+  if (user) {
+    let modified = false
+    // Auto-heal placeholder email or update if cleanEmail is available and different
+    if (cleanEmail && (user.email.endsWith('@kanbankc.internal') || user.email !== cleanEmail)) {
+      const existingWithEmail = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } })
+      if (!existingWithEmail) {
+        user.email = cleanEmail
+        modified = true
+      }
+    }
+    if (firebaseUser.role && user.role !== firebaseUser.role) {
+      user.role = firebaseUser.role
+      modified = true
+    }
+    if (modified) {
+      await user.save()
+    }
+  }
+
+  // 3. If not found by UID, try finding by clean email
   if (!user && cleanEmail) {
     user = await User.findOne({ email: cleanEmail })
     if (user) {
@@ -32,7 +64,7 @@ export const findOrCreateOrBindUser = async (firebaseUser) => {
     }
   }
 
-  // 3. If still not found, create a fresh User record
+  // 4. If still not found, create a fresh User record
   if (!user) {
     user = await User.create({
       uid: firebaseUser.uid,
@@ -40,9 +72,6 @@ export const findOrCreateOrBindUser = async (firebaseUser) => {
       name: firebaseUser.name || '',
       role: firebaseUser.role || 'employee',
     })
-  } else if (firebaseUser.role && user.role !== firebaseUser.role) {
-    user.role = firebaseUser.role
-    await user.save()
   }
 
   clearUserCache(user.uid)
