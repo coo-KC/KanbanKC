@@ -20,15 +20,7 @@ const router = express.Router()
 
 router.get('/', requireEmployee, async (req, res) => {
   try {
-    const requester = await User.findOne({ uid: req.user.uid }).lean()
-    const query = {}
-
-    if (requester && requester.role === 'employee') {
-      const visibleIds = [requester._id.toString(), ...(await getAllSubordinateIds(requester._id))]
-      query._id = { $in: visibleIds }
-    }
-
-    const users = await User.find(query)
+    const users = await User.find({})
       .select('email name role department username superior isWarned uid')
       .populate('superior', 'name email username')
       .lean()
