@@ -5,6 +5,7 @@ import {
   recordFailedAttempt,
   applyReportDecision,
   isIpBanned,
+  removeBannedIp,
 } from '../utils/securityGateBan.js'
 
 test('records a pending admin report after 5 failed attempts from the same IP', () => {
@@ -51,4 +52,13 @@ test('red decision bans the IP permanently and green clears it', () => {
   applyReportDecision({ state, reportId: 'report-1', decision: 'green', note: 'Mistaken report' })
   assert.equal(isIpBanned(state.banList, '198.51.100.7'), false)
   assert.equal(state.reports[0].status, 'cleared')
+})
+
+test('removes an individual banned IP and equivalent normalized entries', () => {
+  const banList = ['198.51.100.7', '::ffff:198.51.100.7', '203.0.113.9']
+  const nextBanList = removeBannedIp(banList, '198.51.100.7')
+
+  assert.deepEqual(nextBanList, ['203.0.113.9'])
+  assert.equal(isIpBanned(nextBanList, '198.51.100.7'), false)
+  assert.equal(isIpBanned(nextBanList, '203.0.113.9'), true)
 })

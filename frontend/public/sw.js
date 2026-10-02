@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kanbankc-pwa-v1';
+const CACHE_NAME = 'kanbakan-pwa-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

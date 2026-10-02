@@ -1,15 +1,33 @@
 import express from 'express'
 import { getAuth } from 'firebase-admin/auth'
 import User from '../models/User.js'
-import { roles, requireAdmin } from '../middleware/rbac.js'
+import { roles, requireAdmin, requireEmployee } from '../middleware/rbac.js'
 import { clearUserCache } from '../middleware/auth.js'
 import { sendNotificationToUsers } from '../utils/messaging.js'
 
+const getAllSubordinateIds = async (userId) => {
+  const directSubs = await User.find({ superior: userId }).select('_id').lean()
+  let allIds = directSubs.map(sub => sub._id.toString())
+  for (const sub of directSubs) {
+    const childIds = await getAllSubordinateIds(sub._id)
+    allIds = allIds.concat(childIds)
+  }
+  return [...new Set(allIds)]
+}
+
 const router = express.Router()
 
-router.get('/', async (req, res) => {
+router.get('/', requireEmployee, async (req, res) => {
   try {
-    const users = await User.find()
+    const requester = await User.findOne({ uid: req.user.uid }).lean()
+    const query = {}
+
+    if (requester && requester.role === 'employee') {
+      const visibleIds = [requester._id.toString(), ...(await getAllSubordinateIds(requester._id))]
+      query._id = { $in: visibleIds }
+    }
+
+    const users = await User.find(query)
       .select('email name role department username superior isWarned uid')
       .populate('superior', 'name email username')
       .lean()

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { auth } from '../firebase'
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, X, Trash2, CalendarDays } from 'lucide-react'
 import { BACKEND_URL } from '../config'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_NAMES = [
@@ -50,6 +51,7 @@ export default function PlanningHub() {
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [deleteEvent, setDeleteEvent] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
   const { data: events = [], isLoading } = useQuery({
@@ -265,6 +267,35 @@ export default function PlanningHub() {
       )}
 
       {/* ── Create Event Modal ── */}
+      <ConfirmDialog
+        open={!!deleteEvent}
+        title="Delete event?"
+        message={`Are you sure you want to delete "${deleteEvent?.title || 'this event'}"? This cannot be undone.`}
+        confirmText="Delete"
+        onClose={() => setDeleteEvent(null)}
+        onConfirm={async () => {
+          if (!deleteEvent) return
+          try {
+            const token = await auth.currentUser?.getIdToken()
+            const res = await fetch(`${BACKEND_URL}/api/events/${deleteEvent._id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+              credentials: 'include'
+            })
+            if (res.ok) {
+              queryClient.invalidateQueries({ queryKey: ['events'] })
+              setSelectedEvent(null)
+            } else {
+              alert('Failed to delete event')
+            }
+          } catch {
+            alert('Failed to delete event')
+          } finally {
+            setDeleteEvent(null)
+          }
+        }}
+      />
+
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowCreateModal(false)}>
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-7 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -328,23 +359,9 @@ export default function PlanningHub() {
                 <button
                   className="p-2 text-[var(--text2)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all cursor-pointer"
                   title="Delete event"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation()
-                    if (!confirm('Are you sure you want to delete this event?')) return
-                    try {
-                      const token = await auth.currentUser?.getIdToken()
-                      const res = await fetch(`${BACKEND_URL}/api/events/${selectedEvent._id}`, {
-                        method: 'DELETE',
-                        headers: { Authorization: `Bearer ${token}` },
-                        credentials: 'include'
-                      })
-                      if (res.ok) {
-                        queryClient.invalidateQueries({ queryKey: ['events'] })
-                        setSelectedEvent(null)
-                      } else {
-                        alert('Failed to delete event')
-                      }
-                    } catch { alert('Failed to delete event') }
+                    setDeleteEvent(selectedEvent)
                   }}
                 >
                   <Trash2 size={16} />

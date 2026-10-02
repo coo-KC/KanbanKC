@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { auth } from '../firebase'
 import { MessageSquare, Trash2, Edit, Send, Plus, Link2, LayoutDashboard } from 'lucide-react'
 import { BACKEND_URL } from '../config'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const fetchOrgTasks = async (filters: Record<string, any>) => {
   const token = await auth.currentUser?.getIdToken()
@@ -127,6 +128,7 @@ export default function OrgDashboard() {
   const [commentText, setCommentText] = useState('')
   const [currentUserUid, setCurrentUserUid] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
@@ -209,9 +211,7 @@ export default function OrgDashboard() {
   }
 
   const handleDeleteTask = (task: any) => {
-    if (confirm('Are you sure you want to soft delete this task?')) {
-      deleteMutation.mutate(task._id)
-    }
+    setDeleteTarget(task)
   }
 
   const isStale = (task: any) => {
@@ -235,6 +235,18 @@ export default function OrgDashboard() {
 
   return (
     <div className="h-full flex flex-col bg-[var(--bg)] text-[var(--text1)] overflow-hidden">
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete task?"
+        message={`Are you sure you want to soft delete "${deleteTarget?.title || 'this task'}"? It will be removed from the active board.`}
+        confirmText="Delete"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget._id)
+          setDeleteTarget(null)
+        }}
+      />
+
       <div className="flex-none p-6 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold">Organization Board</h2>
         <div className="flex flex-wrap gap-3">

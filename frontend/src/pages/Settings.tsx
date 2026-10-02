@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
 import { BACKEND_URL } from '../config'
@@ -156,253 +156,9 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Admin Bot Security Gate Settings */}
-        {profile?.role === 'admin' && <SecurityGateSettings />}
-        {profile?.role === 'admin' && <SecurityGateReportPanel />}
-
         {/* Danger Zone */}
         <DangerZone />
       </div>
-    </div>
-  )
-}
-
-function SecurityGateSettings() {
-  const [question, setQuestion] = useState('')
-  const [answers, setAnswers] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    const fetchAdminConfig = async () => {
-      try {
-        const token = await auth.currentUser?.getIdToken()
-        const res = await fetch(`${BACKEND_URL}/api/security-gate/admin`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setQuestion(data.question || '')
-          setAnswers(data.rawAnswersStr || '')
-        }
-      } catch (e) {
-        console.error('Failed to fetch security gate config', e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchAdminConfig()
-  }, [])
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setMsg('')
-    setErr('')
-    try {
-      const token = await auth.currentUser?.getIdToken()
-      const res = await fetch(`${BACKEND_URL}/api/security-gate/admin`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ question, answers })
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to update security gate config')
-      }
-      setMsg('Bot Security Gate updated successfully! (Answers securely hashed)')
-      setTimeout(() => setMsg(''), 3000)
-    } catch (e: any) {
-      setErr(e.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (loading) return null
-
-  return (
-    <div className="mt-10 border-t border-[var(--border)] pt-6">
-      <h3 className="text-[var(--text1)] font-bold mb-1">Bot Security Gate Settings</h3>
-      <p className="text-[var(--text2)] text-sm mb-4">
-        Customize the challenge question and acceptable answers (comma-separated). Answers are securely stored as salted PBKDF2 hashes.
-      </p>
-      <form onSubmit={handleSave} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
-          Security Question
-          <input
-            type="text"
-            className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3"
-            value={question}
-            onChange={e => setQuestion(e.target.value)}
-            placeholder="e.g. What software platform does KanbanKC belong to?"
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-2 font-semibold text-[var(--text1)] text-sm">
-          Acceptable Answers (Comma-separated aliases)
-          <input
-            type="text"
-            className="w-full border border-[var(--border)] rounded-xl bg-[var(--bg)] text-[var(--text1)] px-4 py-3"
-            value={answers}
-            onChange={e => setAnswers(e.target.value)}
-            placeholder="e.g. KanbaKan, kanbakan, Kanban"
-            required
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full py-3 rounded-xl bg-[var(--accent)] text-white font-semibold hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
-        >
-          {saving ? 'Updating Gate Settings...' : 'Save Security Challenge Settings'}
-        </button>
-        {msg && <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-600 font-semibold text-sm">{msg}</div>}
-        {err && <div className="p-3 rounded-xl bg-red-500/15 text-red-500 font-semibold text-sm">{err}</div>}
-      </form>
-    </div>
-  )
-}
-
-function SecurityGateReportPanel() {
-  const [reports, setReports] = useState<any[]>([])
-  const [banList, setBanList] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [workingId, setWorkingId] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-
-  const fetchReports = async () => {
-    try {
-      const token = await auth.currentUser?.getIdToken()
-      const res = await fetch(`${BACKEND_URL}/api/security-gate/admin/reports`, {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: 'include',
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to load security gate reports')
-      }
-
-      const data = await res.json()
-      setReports(data.reports || [])
-      setBanList(data.banList || [])
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchReports()
-  }, [])
-
-  const handleDecision = async (reportId: string, decision: 'red' | 'green') => {
-    setWorkingId(reportId)
-    setMessage('')
-    setError('')
-
-    try {
-      const token = await auth.currentUser?.getIdToken()
-      const res = await fetch(`${BACKEND_URL}/api/security-gate/admin/reports/${reportId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ decision, note: decision === 'red' ? 'Confirmed abusive IP' : 'Mistaken report cleared' }),
-        credentials: 'include',
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to update report')
-      }
-
-      const data = await res.json()
-      setReports(data.reports || [])
-      setBanList(data.banList || [])
-      setMessage(decision === 'red' ? 'IP was permanently banned.' : 'IP ban was removed.')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setWorkingId('')
-    }
-  }
-
-  if (loading) return null
-
-  return (
-    <div className="mt-10 border-t border-[var(--border)] pt-6">
-      <h3 className="text-[var(--text1)] font-bold mb-1">Security Gate Abuse Review</h3>
-      <p className="text-[var(--text2)] text-sm mb-4">
-        Reviews are created automatically after repeated wrong answers from the same IP. Mark a report as red to permanently ban the IP or green to clear a mistaken flag.
-      </p>
-
-      {message && <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 text-emerald-600 font-semibold text-sm">{message}</div>}
-      {error && <div className="mb-4 p-3 rounded-xl bg-red-500/15 text-red-500 font-semibold text-sm">{error}</div>}
-
-      <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
-        <div className="text-xs uppercase tracking-wider text-[var(--text2)] font-bold mb-2">Permanent bans</div>
-        {banList.length === 0 ? (
-          <span className="text-sm text-[var(--text2)]">No banned IP addresses.</span>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {banList.map((ip) => (
-              <span key={ip} className="inline-flex rounded-full border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-500">
-                {ip}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {reports.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text2)]">
-          No abuse reports yet.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {reports.map((report) => (
-            <div key={report.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-sm font-bold text-[var(--text1)]">IP: {report.ip}</div>
-                  <div className="text-xs text-[var(--text2)]">
-                    {new Date(report.createdAt).toLocaleString()} • {report.status}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={workingId === report.id}
-                    onClick={() => handleDecision(report.id, 'green')}
-                    className="px-3 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 font-semibold text-xs hover:opacity-90 disabled:opacity-50"
-                  >
-                    {workingId === report.id ? 'Updating...' : 'Green'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={workingId === report.id}
-                    onClick={() => handleDecision(report.id, 'red')}
-                    className="px-3 py-2 rounded-xl border border-red-500/40 bg-red-500/10 text-red-500 font-semibold text-xs hover:opacity-90 disabled:opacity-50"
-                  >
-                    {workingId === report.id ? 'Updating...' : 'Red'}
-                  </button>
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-[var(--text2)]">{report.reason}</p>
-              {report.userAgent && <p className="mt-2 text-[11px] text-[var(--text2)]">User-Agent: {report.userAgent}</p>}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -440,45 +196,50 @@ function DangerZone() {
         Danger Zone
       </h3>
       <p className="text-[var(--text2)] text-sm mt-1 mb-4">
-        Once you delete your account, your access will be permanently revoked. This action cannot be undone.
+        Once you delete your account, your access will be permanently revoked.
+        This action cannot be undone.
       </p>
       <button
         type="button"
         onClick={() => setModalOpen(true)}
-        className="w-full py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-semibold hover:bg-red-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
-      >
+        className="w-full py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-semibold hover:bg-red-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2">
         Delete My Account
       </button>
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-2xl w-full max-w-md space-y-4">
-            <h3 className="text-xl font-bold text-red-500">Confirm Account Deletion</h3>
+            <h3 className="text-xl font-bold text-red-500">
+              Confirm Account Deletion
+            </h3>
             <p className="text-sm text-[var(--text2)] leading-relaxed">
-              Are you sure you want to delete your account? You will lose access to KanbanKC immediately.
+              Are you sure you want to delete your account? You will lose access
+              to KanbaKan immediately.
             </p>
-            {error && <div className="p-3 rounded-xl bg-red-500/15 text-red-500 text-xs font-semibold">{error}</div>}
+            {error && (
+              <div className="p-3 rounded-xl bg-red-500/15 text-red-500 text-xs font-semibold">
+                {error}
+              </div>
+            )}
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-[var(--text1)] hover:bg-[var(--bg)] rounded-xl border border-[var(--border)] text-sm font-semibold transition-all"
-              >
+                className="px-4 py-2 text-[var(--text1)] hover:bg-[var(--bg)] rounded-xl border border-[var(--border)] text-sm font-semibold transition-all">
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteSelf}
                 disabled={isDeleting}
-                className="px-5 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50"
-              >
-                {isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}
+                className="px-5 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50">
+                {isDeleting ? "Deleting..." : "Yes, Delete My Account"}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

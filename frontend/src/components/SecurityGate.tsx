@@ -31,10 +31,10 @@ export default function SecurityGate({ onPassed }: SecurityGateProps) {
           const data = await res.json()
           setQuestion(data.question)
         } else {
-          setQuestion('What software platform does KanbanKC belong to?')
+          setQuestion("What software platform does KanbaKan belong to?");
         }
       } catch (err) {
-        setQuestion('What software platform does KanbanKC belong to?')
+        setQuestion("What software platform does KanbaKan belong to?");
       } finally {
         setLoading(false)
       }

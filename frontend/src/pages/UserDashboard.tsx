@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
 import { Plus, MessageSquare, Trash2, Edit, Send, Link2 } from 'lucide-react'
 import { BACKEND_URL } from '../config'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const fetchPersonalTasks = async () => {
   const token = await auth.currentUser?.getIdToken()
@@ -142,6 +143,7 @@ export default function UserDashboard() {
   const [selectedTask, setSelectedTask] = useState<any>(null)
   const [commentText, setCommentText] = useState('')
   const [currentUserUid, setCurrentUserUid] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [createAssigneeSelects, setCreateAssigneeSelects] = useState<number[]>([Date.now()])
   const [editAssigneeSelects, setEditAssigneeSelects] = useState<{id: number, value: string}[]>([])
 
@@ -208,7 +210,41 @@ export default function UserDashboard() {
     }
   })
 
-  if (isLoading) return <div className="p-8 text-[var(--text1)]">Loading board...</div>
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="h-9 w-40 rounded-xl bg-[var(--bg)] animate-pulse" />
+          <div className="h-11 w-36 rounded-xl bg-[var(--bg)] animate-pulse" />
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, columnIndex) => (
+            <div key={columnIndex} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="h-5 w-24 rounded-lg bg-[var(--bg)] animate-pulse" />
+                <div className="h-6 w-6 rounded-full bg-[var(--bg)] animate-pulse" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((__, cardIndex) => (
+                  <div key={cardIndex} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 space-y-3 animate-pulse">
+                    <div className="h-4 w-3/4 rounded bg-[var(--border)]" />
+                    <div className="h-3 w-full rounded bg-[var(--border)]" />
+                    <div className="h-3 w-2/3 rounded bg-[var(--border)]" />
+                    <div className="flex gap-2">
+                      <div className="h-6 w-16 rounded-full bg-[var(--border)]" />
+                      <div className="h-6 w-20 rounded-full bg-[var(--border)]" />
+                    </div>
+                    <div className="h-8 w-full rounded-lg bg-[var(--border)]" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
   if (error) return <div className="p-8 text-red-500">Error loading tasks: {error.message}</div>
 
   const handleCreateTask = (e: React.FormEvent<HTMLFormElement>) => {
@@ -244,13 +280,23 @@ export default function UserDashboard() {
   }
 
   const handleDeleteTask = (task: any) => {
-    if (confirm('Are you sure you want to delete this task?')) {
-      deleteMutation.mutate(task._id)
-    }
+    setDeleteTarget(task)
   }
 
   return (
     <div className="flex flex-col h-full w-full max-w-full overflow-hidden">
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete task?"
+        message={`Are you sure you want to permanently delete "${deleteTarget?.title || 'this task'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget._id)
+          setDeleteTarget(null)
+        }}
+      />
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--text1)]">My Board</h2>
         <button 

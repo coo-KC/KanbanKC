@@ -12,12 +12,13 @@ import {
   applyReportDecision,
   isIpBanned,
   normalizeIp,
+  removeBannedIp,
   recordFailedAttempt,
 } from '../utils/securityGateBan.js'
 
 const router = express.Router()
 
-const DEFAULT_QUESTION = 'What software platform does KanbanKC belong to?'
+const DEFAULT_QUESTION = "What software platform does KanbaKan belong to?";
 const DEFAULT_ANSWERS_STR = 'KanbaKan, kanbakan, Kanban'
 
 const getRequestIp = (req) => {
@@ -241,6 +242,77 @@ router.get('/admin/reports', verifyFirebaseToken, requireAdmin, async (req, res)
   } catch (error) {
     console.error('Failed to fetch security gate reports:', error)
     res.status(500).json({ error: 'Unable to fetch security gate reports' })
+  }
+})
+
+router.delete('/admin/bans', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const config = await getSecurityGateConfig()
+    const state = {
+      ...config,
+      banList: [],
+      reports: [...(config.reports || [])],
+      failedAttempts: [...(config.failedAttempts || [])],
+    }
+
+    await persistSecurityGateState(state)
+
+    res.json({ banList: state.banList, reports: state.reports })
+  } catch (error) {
+    console.error('Failed to remove all banned IP addresses:', error)
+    res.status(500).json({ error: 'Unable to remove banned IP addresses' })
+  }
+})
+
+router.delete('/admin/bans/:ip', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const ip = normalizeIp(req.params.ip)
+    if (!ip) {
+      return res.status(400).json({ error: 'A valid IP address is required.' })
+    }
+
+    const config = await getSecurityGateConfig()
+    const state = {
+      ...config,
+      banList: [...(config.banList || [])],
+      reports: [...(config.reports || [])],
+      failedAttempts: [...(config.failedAttempts || [])],
+    }
+    const nextBanList = removeBannedIp(state.banList, ip)
+
+    if (nextBanList.length === state.banList.length) {
+      return res.status(404).json({ error: 'This IP address is not currently banned.' })
+    }
+
+    state.banList = nextBanList
+    await persistSecurityGateState(state)
+
+    res.json({ banList: state.banList, reports: state.reports })
+  } catch (error) {
+    console.error('Failed to remove banned IP address:', error)
+    res.status(500).json({ error: 'Unable to remove the banned IP address' })
+  }
+})
+
+router.delete('/admin/reports', verifyFirebaseToken, requireAdmin, async (req, res) => {
+  try {
+    const config = await getSecurityGateConfig()
+    const nextState = {
+      ...config,
+      reports: [],
+      banList: [...(config.banList || [])],
+      failedAttempts: [...(config.failedAttempts || [])],
+    }
+
+    await persistSecurityGateState(nextState)
+
+    res.json({
+      reports: [],
+      banList: nextState.banList,
+    })
+  } catch (error) {
+    console.error('Failed to clear security gate report history:', error)
+    res.status(500).json({ error: 'Unable to clear security gate report history' })
   }
 })
 

@@ -18,6 +18,13 @@ export const isIpBanned = (banList = [], ip = '') => {
   return (banList || []).some((entry) => normalizeIp(entry) === normalizedIp)
 }
 
+export const removeBannedIp = (banList = [], ip = '') => {
+  const normalizedIp = normalizeIp(ip)
+  if (!normalizedIp) return [...(banList || [])]
+
+  return (banList || []).filter((entry) => normalizeIp(entry) !== normalizedIp)
+}
+
 export const createSecurityReport = ({ ip, userAgent, reason }) => ({
   id: `security-report-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`,
   ip: normalizeIp(ip),

@@ -64,7 +64,7 @@ export default function InstallPWA() {
           <Smartphone size={15} className="text-white" />
         </div>
         <div className="truncate">
-          <span className="font-semibold">Install KanbanKC:</span>{' '}
+          <span className="font-semibold">Install KanbaKan:</span>{" "}
           <span className="hidden sm:inline text-indigo-100">
             Keep it on your home screen for instant access!
           </span>
@@ -79,21 +79,20 @@ export default function InstallPWA() {
         ) : deferredPrompt ? (
           <button
             onClick={handleInstallClick}
-            className="flex items-center gap-1 bg-white text-indigo-600 font-semibold px-2.5 py-1 rounded-md shadow-sm hover:bg-indigo-50 transition-all duration-200 text-[11px] sm:text-xs"
-          >
+            className="flex items-center gap-1 bg-white text-indigo-600 font-semibold px-2.5 py-1 rounded-md shadow-sm hover:bg-indigo-50 transition-all duration-200 text-[11px] sm:text-xs">
             <Download size={13} />
             <span>Install</span>
           </button>
         ) : isIOS ? (
           <span className="text-[10px] sm:text-xs bg-white/15 px-2 py-0.5 rounded-md text-indigo-100">
-            Tap <strong className="text-white">Share</strong> &rarr; <strong className="text-white">Add to Home</strong>
+            Tap <strong className="text-white">Share</strong> &rarr;{" "}
+            <strong className="text-white">Add to Home</strong>
           </span>
         ) : (
           <button
             onClick={handleInstallClick}
             className="flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white font-medium px-2.5 py-1 rounded-md transition-all text-[11px] sm:text-xs"
-            title="Use browser menu to install"
-          >
+            title="Use browser menu to install">
             <Download size={13} />
             <span>Install</span>
           </button>
@@ -102,8 +101,7 @@ export default function InstallPWA() {
         <button
           onClick={() => setShowBanner(false)}
           className="p-1 hover:bg-white/10 rounded-md transition-colors text-indigo-200 hover:text-white"
-          aria-label="Dismiss PWA prompt"
-        >
+          aria-label="Dismiss PWA prompt">
           <X size={14} />
         </button>
       </div>

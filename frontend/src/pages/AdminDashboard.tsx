@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { auth } from '../firebase'
 import { BACKEND_URL } from '../config'
-import { AlertTriangle, Trash2, Shield, UserCheck, Search, CheckCircle } from 'lucide-react'
+import { AlertTriangle, Trash2, Shield, UserCheck, Search, CheckCircle, ShieldAlert } from 'lucide-react'
 
 type UserItem = {
   _id: string
@@ -101,6 +102,7 @@ const deleteUser = async (id: string) => {
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
@@ -188,7 +190,14 @@ export default function AdminDashboard() {
             Manage user roles, assign immediate superiors, warn users under watch, or remove user accounts.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/security')}
+            className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-500 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-red-500/20 transition-all"
+          >
+            <ShieldAlert size={16} /> Security IP Review
+          </button>
           <span className="bg-[var(--bg)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text1)]">
             Total Users: {users.length}
           </span>

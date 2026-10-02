@@ -7,6 +7,16 @@ import { requireCgrade, requireEmployee } from '../middleware/rbac.js'
 
 const router = express.Router()
 
+const getAllSubordinateIds = async (userId) => {
+  const directSubs = await User.find({ superior: userId }).select('_id').lean()
+  let allIds = directSubs.map(sub => sub._id.toString())
+  for (const sub of directSubs) {
+    const childIds = await getAllSubordinateIds(sub._id)
+    allIds = allIds.concat(childIds)
+  }
+  return [...new Set(allIds)]
+}
+
 const formatTaskForReport = (task) => {
   const createdAtMs = new Date(task.createdAt).getTime()
   const completedAtMs = task.completedAt ? new Date(task.completedAt).getTime() : null
@@ -63,9 +73,8 @@ router.get('/org', requireEmployee, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' })
 
   if (user.role === 'employee') {
-    const subordinates = await User.find({ superior: user._id }).lean()
-    const subordinateIds = subordinates.map(sub => sub._id)
-    filter.assignees = { $in: [user._id, ...subordinateIds] }
+    const visibleIds = [user._id.toString(), ...(await getAllSubordinateIds(user._id))]
+    filter.assignees = { $in: visibleIds }
   }
 
   if (username && username.trim()) {

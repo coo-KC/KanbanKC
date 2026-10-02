@@ -1,12 +1,12 @@
-# KanbanKC — In-Depth Security & Application Features Report
+# KanbaKan — In-Depth Security & Application Features Report
 
-This report provides an exhaustive technical overview of the security architecture, security enhancements, core application capabilities, and Role-Based Access Control (RBAC) permissions matrix implemented in the **KanbanKC (KanbaKan)** platform.
+This report provides an exhaustive technical overview of the security architecture, security enhancements, core application capabilities, and Role-Based Access Control (RBAC) permissions matrix implemented in the **KanbaKan** platform.
 
 ---
 
 ## 1. Executive Summary
 
-**KanbanKC** is an organization-grade Kanban task management system designed for teams of 20 to 30 people. Built on Express.js, MongoDB (Mongoose), Firebase Authentication, and Vite/React with TypeScript, the system combines real-time planning, deadline automation, organizational hierarchy tracking, and multi-layered security controls.
+**KanbaKan** is an organization-grade Kanban task management system designed for teams of 20 to 30 people. Built on Express.js, MongoDB (Mongoose), Firebase Authentication, and Vite/React with TypeScript, the system combines real-time planning, deadline automation, organizational hierarchy tracking, and multi-layered security controls.
 
 ---
 

@@ -77,7 +77,11 @@ export default function ReportingHub() {
     }
     const doc = new jsPDF()
     const subtitle = usernameFilter.trim() ? ` (Filtered by: ${usernameFilter.trim()})` : ''
-    doc.text(`KanbanKC ${scope === 'org' ? 'Organization' : 'Personal'} Report${subtitle}`, 14, 15)
+    doc.text(
+      `KanbaKan ${scope === "org" ? "Organization" : "Personal"} Report${subtitle}`,
+      14,
+      15,
+    );
     
     const head = [['ID', 'Title', 'Assignee', 'Status', 'Priority', 'Completed']]
     const body = displayedData.map(row => [

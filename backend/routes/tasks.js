@@ -37,6 +37,27 @@ const getAllSubordinateIds = async (userId) => {
   return allIds
 }
 
+const getVisibleUserIdsForEmployee = async (userId) => {
+  const subordinateIds = await getAllSubordinateIds(userId)
+  return [userId, ...subordinateIds.map(id => id.toString())]
+    .map(id => id.toString())
+    .filter((id, index, arr) => arr.indexOf(id) === index)
+}
+
+const validateAssigneeAccess = async (requester, assigneeIds = []) => {
+  if (!requester || requester.role !== 'employee') return assigneeIds || []
+
+  const allowedIds = new Set(await getVisibleUserIdsForEmployee(requester._id))
+  const requestedIds = Array.isArray(assigneeIds) ? assigneeIds.map(id => id.toString()) : []
+  const invalidIds = requestedIds.filter(id => !allowedIds.has(id))
+
+  if (invalidIds.length) {
+    throw new Error('You can only assign tasks to people under your supervision.')
+  }
+
+  return requestedIds
+}
+
 router.get('/org', requireEmployee, async (req, res) => {
   try {
     const user = await User.findOne({ uid: req.user.uid })
@@ -50,13 +71,13 @@ router.get('/org', requireEmployee, async (req, res) => {
     if (req.query.sprintId) filter.sprintId = req.query.sprintId
 
     if (req.query.supervisedOnly === 'true') {
-      const subordinateIds = await getAllSubordinateIds(user._id)
+      const visibleIds = await getVisibleUserIdsForEmployee(user._id)
       if (filter.assignees) {
         const singleAssignee = filter.assignees.toString()
-        const matchesSub = subordinateIds.some(id => id.toString() === singleAssignee)
-        filter.assignees = matchesSub ? singleAssignee : { $in: [] }
+        const matchesVisible = visibleIds.some(id => id.toString() === singleAssignee)
+        filter.assignees = matchesVisible ? singleAssignee : { $in: [] }
       } else {
-        filter.assignees = { $in: subordinateIds }
+        filter.assignees = { $in: visibleIds }
       }
     }
 
@@ -90,7 +111,8 @@ router.post('/', requireEmployee, async (req, res) => {
 
     let assignees = [user._id]
     if (assigneeIds && Array.isArray(assigneeIds) && assigneeIds.length > 0) {
-      const validUsers = await User.find({ _id: { $in: assigneeIds } })
+      const validatedIds = await validateAssigneeAccess(user, assigneeIds)
+      const validUsers = await User.find({ _id: { $in: validatedIds } })
       assignees = validUsers.map(u => u._id)
     }
 
@@ -142,7 +164,8 @@ router.patch('/:id', requireEmployee, async (req, res) => {
 
   let assignees = task.assignees
   if (assigneeIds && Array.isArray(assigneeIds)) {
-    const validUsers = await User.find({ _id: { $in: assigneeIds } })
+    const validatedIds = await validateAssigneeAccess(requester, assigneeIds)
+    const validUsers = await User.find({ _id: { $in: validatedIds } })
     assignees = validUsers.map(u => u._id)
   }
 
